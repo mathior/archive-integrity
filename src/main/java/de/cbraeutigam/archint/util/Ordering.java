@@ -204,5 +204,15 @@ public class Ordering implements TextSerializable, ByteSerializable {
 		identifiers.clear();
 		isValid = false;
 	}
+	
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		for (String s : identifiers) {
+			sb.append(s);
+			sb.append("\n");
+		}
+		return sb.toString();
+	}
 
 }

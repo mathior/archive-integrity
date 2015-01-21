@@ -15,10 +15,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import javax.xml.crypto.dsig.keyinfo.RetrievalMethod;
-
-import org.hamcrest.core.StringStartsWith;
-
 import de.cbraeutigam.archint.util.ByteSerializable;
 import de.cbraeutigam.archint.util.ChecksumProvider;
 import de.cbraeutigam.archint.util.DateProvider;
