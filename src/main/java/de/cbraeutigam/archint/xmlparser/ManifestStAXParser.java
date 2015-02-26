@@ -24,6 +24,8 @@ import javax.xml.stream.events.XMLEvent;
  */
 public class ManifestStAXParser {
 	
+	// cf. http://www.vogella.com/tutorials/JavaXML/article.html
+	
 	static final String FILES = "files";
 	static final String FILE = "file";
 	static final String ORIGINALNAME = "originalName";
