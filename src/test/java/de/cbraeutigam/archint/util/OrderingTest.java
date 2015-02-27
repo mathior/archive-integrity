@@ -15,6 +15,8 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 
+import de.cbraeutigam.archint.hashforest.InvalidInputException;
+
 public class OrderingTest {
 	
 	private ChecksumProvider cp = null;
@@ -81,7 +83,7 @@ public class OrderingTest {
 	}
 	
 	@Test
-	public void testReadFromString() throws IOException {
+	public void testReadFromString() throws IOException, InvalidInputException {
 		Ordering o = new Ordering(cp);
 		o.readFrom(new StringReader(validString1));
 		assertTrue(o.isValid());
@@ -89,19 +91,31 @@ public class OrderingTest {
 	}
 
 	@Test
-	public void testIsValid() throws IOException {
+	public void testIsValid() throws IOException, InvalidInputException {
 		Ordering o = new Ordering(cp);
 		assertTrue(o.isValid());
 		o.add("foo");
 		assertFalse(o.isValid());
 		o.readFrom(new StringReader(validString1));
 		assertTrue(o.isValid());
+	}
+	
+	@Test(expected=InvalidInputException.class)
+	public void testIsInValid1() throws IOException, InvalidInputException  {
+		Ordering o = new Ordering(cp);
 		o.readFrom(new StringReader(inValidString1));
-		assertFalse(o.isValid());
+	}
+	
+	@Test(expected=InvalidInputException.class)
+	public void testIsInValid2() throws IOException, InvalidInputException  {
+		Ordering o = new Ordering(cp);
 		o.readFrom(new StringReader(inValidString2));
-		assertFalse(o.isValid());
+	}
+	
+	@Test(expected=InvalidInputException.class)
+	public void testIsInValid3() throws IOException, InvalidInputException  {
+		Ordering o = new Ordering(cp);
 		o.readFrom(new StringReader(inValidString3));
-		assertFalse(o.isValid());
 	}
 	
 	@Test

@@ -8,12 +8,13 @@ import java.io.StringWriter;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import de.cbraeutigam.archint.hashforest.InvalidInputException;
 import de.cbraeutigam.archint.util.ChecksumProvider;
 import de.cbraeutigam.archint.util.Ordering;
 
 public class DataOrderExperiments {
 
-	public static void main(String[] args) throws NoSuchAlgorithmException, IOException {
+	public static void main(String[] args) throws NoSuchAlgorithmException, IOException, InvalidInputException {
 		int i = 0x9ABC;
 		System.out.println(i);
 		System.out.println(i >> 24);

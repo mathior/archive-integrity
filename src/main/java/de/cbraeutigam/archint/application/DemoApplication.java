@@ -1,6 +1,5 @@
 package de.cbraeutigam.archint.application;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -14,11 +13,16 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import javax.xml.stream.XMLStreamException;
+
 import de.cbraeutigam.archint.hashforest.HashForest;
 import de.cbraeutigam.archint.hashforest.HashForest.Mode;
+import de.cbraeutigam.archint.hashforest.InvalidInputException;
 import de.cbraeutigam.archint.hashforest.SHA512HashValue;
 import de.cbraeutigam.archint.util.ChecksumProvider;
 import de.cbraeutigam.archint.util.Ordering;
+import de.cbraeutigam.archint.xmlparser.FileItem;
+import de.cbraeutigam.archint.xmlparser.ManifestStAXReader;
 
 public class DemoApplication {
 
@@ -65,83 +69,223 @@ public class DemoApplication {
 	}
 
 	private final static String ORDERFILENAME = "ord.txt";
+	private final static String MANIFESTFILENAME = "manifest.xml";
 	private final static String INTEGRITYFILENAME = "integrity.txt";
-	private final static String PREMADEORDERINGFILENAME = "demofilelist.txt";
 	private final static String VALIDMESSAGE = "VALID";
 	private final static String INVALIDMESSAGE = "INVALID";
-
+	
+	
+	/**
+	 * Helper function to read ordering either from a manifest.xml or from a
+	 * simple text file.
+	 * 
+	 * @param orderingFilePath
+	 * @return
+	 * @throws XMLStreamException 
+	 * @throws IOException 
+	 * @throws MissingOrderingFileException 
+	 * @throws NoSuchAlgorithmException 
+	 * @throws InvalidInputException 
+	 */
+	private static List<String> readFileOrdering(String orderingFilePath)
+			throws XMLStreamException, NoSuchAlgorithmException,
+			MissingOrderingFileException, IOException, InvalidInputException {
+		List<String> fileOrder = new ArrayList<String>();
+		if (orderingFilePath.endsWith(MANIFESTFILENAME)) {
+			// file order is provided explicitely by the manifest file
+			ManifestStAXReader reader = new ManifestStAXReader();
+			List<FileItem> fileItems = reader.readManifest(orderingFilePath);
+			/*
+			 * FIXME: currently the manifest file was integrated into the
+			 * integrity information but not added to the manifest itself
+			 */
+			fileOrder.add(MANIFESTFILENAME);
+			for (FileItem fi : fileItems) {
+				fileOrder.add(fi.getFileName());
+			}
+		} else {
+			// file order should be provided explicitely by an ordering file
+			Ordering ordering = readSimpleOrdering(orderingFilePath);
+			fileOrder = ordering.getIdentifiers();
+		}
+		return fileOrder;
+	}
+	
+	/**
+	 * Check integrity of the given directory.
+	 * @param baseDir
+	 * @return
+	 * @throws IOException
+	 * @throws NoSuchAlgorithmException
+	 * @throws MissingOrderingFileException
+	 * @throws MissingDataFileException
+	 * @throws MissingIntegrityFileException
+	 * @throws XMLStreamException 
+	 * @throws InvalidInputException 
+	 */
 	public static boolean checkIntegrity(String baseDir) throws IOException,
 			NoSuchAlgorithmException, MissingOrderingFileException,
-			MissingDataFileException, MissingIntegrityFileException {
+			MissingDataFileException, MissingIntegrityFileException,
+			XMLStreamException, InvalidInputException {
 
-		HashForest<SHA512HashValue> givenIntegrityData = readHashForest(baseDir
-				+ File.separator + INTEGRITYFILENAME);
+		// read integrity data
+		HashForest<SHA512HashValue> givenIntegrityData = 
+				readHashForest(baseDir + File.separator + INTEGRITYFILENAME);
+		
+		// read ordering from the file denoted in the integrity data
+		String orderingFileName = givenIntegrityData.getOrdering();
+		
+		File orderingFile =
+				new File(baseDir + File.separator + orderingFileName);
+		
+		if (!orderingFile.isFile() || !orderingFile.canRead()) {
+			throw new MissingOrderingFileException(
+					"Missing ordering information (should be "
+				    + orderingFileName + ")");
+		}
+		
+		List<String> fileOrder =
+				readFileOrdering(orderingFile.getAbsolutePath());
 
-		Ordering ordering = readOrdering(baseDir + File.separator
-				+ givenIntegrityData.getOrdering());
-
-		HashForest<SHA512HashValue> current = computeHashForest(baseDir,
-				ordering.getIdentifiers());
-
+		HashForest<SHA512HashValue> current = 
+				computeHashForest(baseDir, fileOrder);
+		
 		// return current.validate(givenIntegrityData);
 		return givenIntegrityData.validate(current);
 	}
 
+	/**
+	 * Check if the first directory is a superset of the second directory.
+	 * 
+	 * @param baseDir1
+	 * @param baseDir2
+	 * @return
+	 * @throws IOException
+	 * @throws NoSuchAlgorithmException
+	 * @throws MissingOrderingFileException
+	 * @throws MissingDataFileException
+	 * @throws XMLStreamException 
+	 * @throws InvalidInputException 
+	 */
 	public static boolean checkContains(String baseDir1, String baseDir2)
 			throws IOException, NoSuchAlgorithmException,
-			MissingOrderingFileException, MissingDataFileException {
+			MissingOrderingFileException, MissingDataFileException,
+			XMLStreamException, InvalidInputException {
 
+		HashForest<SHA512HashValue> hf1;
+		HashForest<SHA512HashValue> hf2;
+		List<String> fileOrdering1;
+		List<String> fileOrdering2;
+		
+		/*
+		 * detect the type of ordering information, either a manifest.xml or a
+		 * text file for both directories and compute and compare the hash
+		 * forests
+		 */
+		
 		/*
 		 * TODO: for contains checks the ordering information inside the hash
-		 * forest doesn't work
+		 * forest doesn't work, so we must remove it from the file ordering
+		 * if it is read from a simple ordering file.
 		 */
-		Ordering ordering1 = readOrdering(baseDir1 + File.separator
-				+ ORDERFILENAME);
-		HashForest<SHA512HashValue> hf1 = computeHashForest(baseDir1, ordering1
-				.getIdentifiers().subList(1, ordering1.getIdentifiers().size()));
-
-		// ...also currently both hashforests must be recomputed
-		Ordering ordering2 = readOrdering(baseDir2 + File.separator
-				+ ORDERFILENAME);
-		HashForest<SHA512HashValue> hf2 = computeHashForest(baseDir2, ordering2
-				.getIdentifiers().subList(1, ordering2.getIdentifiers().size()));
-
+		
+		File manifestFile1 =
+				new File(baseDir1 + File.separator + MANIFESTFILENAME);
+		File orderingFile1 =
+				new File(baseDir1 + File.separator + ORDERFILENAME);
+		
+		if (manifestFile1.isFile() && manifestFile1.canRead()) {
+			fileOrdering1 = readFileOrdering(manifestFile1.getAbsolutePath());
+			hf1 = computeHashForest(baseDir1, fileOrdering1);
+		} else if (orderingFile1.isFile() && orderingFile1.canRead()) {
+			fileOrdering1 = readFileOrdering(orderingFile1.getAbsolutePath());
+			hf1 = computeHashForest(
+					baseDir1, fileOrdering1.subList(1, fileOrdering1.size()));
+		} else {
+			throw new MissingOrderingFileException(
+					"Missing ordering information in " + baseDir1);
+		}
+		
+		File manifestFile2 =
+				new File(baseDir2 + File.separator + MANIFESTFILENAME);
+		File orderingFile2 =
+				new File(baseDir2 + File.separator + ORDERFILENAME);
+		
+		if (manifestFile2.isFile() && manifestFile2.canRead()) {
+			fileOrdering2 = readFileOrdering(manifestFile2.getAbsolutePath());
+			hf2 = computeHashForest(baseDir2, fileOrdering2);
+		} else if (orderingFile2.isFile() && orderingFile2.canRead()) {
+			fileOrdering2 = readFileOrdering(orderingFile2.getAbsolutePath());
+			hf2 = computeHashForest(
+					baseDir2, fileOrdering2.subList(1, fileOrdering2.size()));
+		} else {
+			throw new MissingOrderingFileException(
+					"Missing ordering information in " + baseDir2);
+		}
+		
 		return hf1.contains(hf2);
 	}
 
+	
+	/**
+	 * Creates integrity data for a given directory. If a manifest.xml exists in
+	 * the directory, the file order given in the manifest is used to create the
+	 * hash forest. If no manifest.xml exists, the files will be read in
+	 * alphanumeric order and an ordering file will be written.
+	 * 
+	 * @param baseDir
+	 * @param mode
+	 * @return
+	 * @throws NoSuchAlgorithmException
+	 *             if SHA512 hash algorithm is not available
+	 * @throws MissingDataFileException
+	 * @throws IOException
+	 * @throws XMLStreamException
+	 */
 	public static String createIntegrityData(String baseDir,
 			HashForest.Mode mode) throws NoSuchAlgorithmException,
-			MissingDataFileException, IOException {
+			MissingDataFileException, IOException, XMLStreamException {
+		
+		// this is the create routine, so if an ordering file exists, delete it
 		File orderFile = new File(baseDir + File.separator + ORDERFILENAME);
 		if (orderFile.isFile()) {
 			orderFile.delete();
 		}
+		
+		// this is the create routine, so if an integrity file exists, delete it
 		File integrityFile = new File(baseDir + File.separator
 				+ INTEGRITYFILENAME);
 		if (integrityFile.isFile()) {
 			integrityFile.delete();
 		}
-
-		List<File> fileTree = listFileTree(new File(baseDir));
-		Collections.sort(fileTree);
-		Ordering ordering = new Ordering(new ChecksumProvider(
-				MessageDigest.getInstance("SHA-512")));
-		ordering.add(ORDERFILENAME);
-
-		// TODO: This is a hack for the demo to provide a premade ordering
-		File premadeOrdering = new File(baseDir + File.separator
-				+ PREMADEORDERINGFILENAME);
-		if (premadeOrdering.isFile() && premadeOrdering.canRead()) {
-			BufferedReader br = new BufferedReader(new FileReader(
-					premadeOrdering));
-			String line;
-			while (null != (line = br.readLine())) {
-				if (line.trim().length() > 0) {
-					ordering.add(line);
-				}
+		
+		/*
+		 * check for an existing manifest.xml file that provides the ordering,
+		 * if none exists read the files and write a ordering file
+		 */
+		List<String> fileOrder = new ArrayList<String>();
+		boolean manifestExists = false;
+		File manifestFile = new File(baseDir + File.separator
+				+ MANIFESTFILENAME);
+		if (manifestFile.isFile() && manifestFile.canRead()) {
+			// file order is provided explicitely by the manifest file
+			manifestExists = true;
+			ManifestStAXReader reader = new ManifestStAXReader();
+			List<FileItem> fileItems
+				= reader.readManifest(manifestFile.getAbsolutePath());
+			// the manifest must be integrated into the integrity information
+			fileOrder.add(MANIFESTFILENAME);
+			for (FileItem fi : fileItems) {
+				fileOrder.add(fi.getFileName());
 			}
-			br.close();
 		} else {
+			// file order is provided implicitely by file names
+			List<File> fileTree = listFileTree(new File(baseDir));
+			Collections.sort(fileTree);
+			// the ordering must be integrated into the integrity information
+			Ordering ordering = new Ordering(
+					new ChecksumProvider(MessageDigest.getInstance("SHA-512")));
+			ordering.add(ORDERFILENAME);
 			/*
 			 * ordering should use relative paths, therefore use the full path
 			 * and cut the full path part of the base dir
@@ -151,30 +295,38 @@ public class DemoApplication {
 				ordering.add(f.getAbsolutePath().substring(
 						baseDirF.getAbsolutePath().length() + 1));
 			}
+			
+			// save the ordering file
+			FileWriter fw = new FileWriter(orderFile);
+			ordering.writeTo(fw);
+			fw.close();
+			
+			fileOrder = ordering.getIdentifiers();
 		}
-
-		FileWriter fw = new FileWriter(orderFile);
-		ordering.writeTo(fw);
-		fw.close();
-
-		HashForest<SHA512HashValue> hf = computeHashForest(baseDir,
-				ordering.getIdentifiers());
-
-		hf.setOrdering(ORDERFILENAME);
+		
+		// create and write the integrity information
+		HashForest<SHA512HashValue> hf = computeHashForest(baseDir, fileOrder);
+		
+		if (manifestExists) {
+			hf.setOrdering(MANIFESTFILENAME);
+		} else {
+			hf.setOrdering(ORDERFILENAME);
+		}
 
 		if (mode.equals(Mode.ROOTS)) {
 			hf.pruneForest();
 		}
-		fw = new FileWriter(integrityFile);
+		FileWriter fw = new FileWriter(integrityFile);
 		hf.writeTo(fw);
 		fw.close();
-
+		
+		// create and return a status message
 		StringBuilder statusMessage = new StringBuilder();
 		statusMessage.append("Created integrity information for ");
 		statusMessage.append(baseDir);
 		statusMessage.append("\n");
 		statusMessage.append("Files: ");
-		statusMessage.append(ordering.getIdentifiers().size());
+		statusMessage.append(fileOrder.size());
 		statusMessage.append("\n");
 		statusMessage.append("Mode: ");
 		statusMessage.append(mode.toString());
@@ -182,12 +334,23 @@ public class DemoApplication {
 		statusMessage.append("Integrity information written to: ");
 		statusMessage.append(integrityFile.getName());
 		statusMessage.append("\n");
-		statusMessage.append("Ordering information written to: ");
-		statusMessage.append(orderFile.getName());
-		statusMessage.append("\n");
+		if (manifestExists) {
+			statusMessage.append("Ordering information provided by: ");
+			statusMessage.append(manifestFile.getName());
+			statusMessage.append("\n");
+		} else {
+			statusMessage.append("Ordering information written to: ");
+			statusMessage.append(orderFile.getName());
+			statusMessage.append("\n");
+		}
 		return statusMessage.toString();
 	}
 
+	/**
+	 * Recursively list all files in the given directory.
+	 * @param dir
+	 * @return
+	 */
 	private static List<File> listFileTree(File dir) {
 		List<File> fileTree = new ArrayList<File>();
 		for (File entry : dir.listFiles()) {
@@ -199,7 +362,14 @@ public class DemoApplication {
 		}
 		return fileTree;
 	}
-
+	
+	/**
+	 * Helper method to compute the SHA512 hash value for a given file.
+	 * @param fileName
+	 * @return
+	 * @throws NoSuchAlgorithmException
+	 * @throws MissingDataFileException
+	 */
 	private static SHA512HashValue getHash(String fileName)
 			throws NoSuchAlgorithmException, MissingDataFileException {
 		MessageDigest sha512 = MessageDigest.getInstance("SHA-512");
@@ -207,11 +377,18 @@ public class DemoApplication {
 		byte[] buffer = new byte[bufferSize];
 		File f = new File(fileName);
 		FileInputStream fis;
+		
 		try {
 			fis = new FileInputStream(f);
-
+			
 			int bytesRead = fis.read(buffer);
-			sha512.update(Arrays.copyOf(buffer, bytesRead));
+			
+			if (bytesRead == -1) {  // file is empty, update with empty message
+				sha512.update(new byte[0]);
+			} else {
+				sha512.update(Arrays.copyOf(buffer, bytesRead));
+			}
+			
 			while ((bytesRead = fis.read(buffer)) != -1) {
 				sha512.update(Arrays.copyOf(buffer, bytesRead));
 			}
@@ -224,6 +401,15 @@ public class DemoApplication {
 		return new SHA512HashValue(sha512.digest());
 	}
 
+	/**
+	 * Compute the hash forest for all files in the given directory based on the
+	 * given ordering.
+	 * @param baseDir
+	 * @param ordering
+	 * @return
+	 * @throws NoSuchAlgorithmException
+	 * @throws MissingDataFileException
+	 */
 	public static HashForest<SHA512HashValue> computeHashForest(String baseDir,
 			List<String> ordering) throws NoSuchAlgorithmException,
 			MissingDataFileException {
@@ -237,7 +423,7 @@ public class DemoApplication {
 	}
 
 	private static HashForest<SHA512HashValue> readHashForest(String fileName)
-			throws MissingIntegrityFileException, IOException {
+			throws MissingIntegrityFileException, IOException, InvalidInputException {
 		File integrityFile = new File(fileName);
 		if (!integrityFile.isFile()) {
 			throw new MissingIntegrityFileException("No integrity information available!");
@@ -250,9 +436,18 @@ public class DemoApplication {
 		return hf;
 	}
 
-	private static Ordering readOrdering(String fileName)
+	/**
+	 * Helper function to read a simple ordering text file.
+	 * @param fileName
+	 * @return
+	 * @throws NoSuchAlgorithmException
+	 * @throws MissingOrderingFileException
+	 * @throws IOException
+	 * @throws InvalidInputException 
+	 */
+	private static Ordering readSimpleOrdering(String fileName)
 			throws NoSuchAlgorithmException, MissingOrderingFileException,
-			IOException {
+			IOException, InvalidInputException {
 		File orderFile = new File(fileName);
 		if (!orderFile.isFile()) {
 			throw new MissingOrderingFileException(
@@ -354,17 +549,8 @@ public class DemoApplication {
 		checkPath(path);
 		return new CliOptions(option, isFull, path, null);
 	}
-
-	public static void main(String[] args) {
-
-		// String homeDir = System.getProperty("user.home");
-		// String testDirCurrent = homeDir
-		// + "/Desktop/projekt-digitales-magazin/testcases";
-		// String testDirOld = homeDir
-		// + "/Desktop/projekt-digitales-magazin/testcases-old";
-		//
-		// args = new String[] {"-c", "--full", testDirCurrent};
-
+	
+	public static void demoMain(String[] args) {
 		DemoApplication da = new DemoApplication();
 		CliOptions opts = da.parseArgs(args);
 
@@ -372,14 +558,20 @@ public class DemoApplication {
 			printUsageAndExit(0, null);
 		} else if (opts.getOption().equals(Option.CREATE)) {
 			try {
-				String statusMessage = createIntegrityData(opts.getPath1(),
+				String statusMessage = createIntegrityData(
+						opts.getPath1(),
 						opts.getMode());
 				System.out.println(statusMessage);
 			} catch (MissingDataFileException e) {
+				System.err.println("Error: Cannot read one or more of the data files!");
 				e.printStackTrace();
 			} catch (NoSuchAlgorithmException e) {
+				System.err.println("Error: SHA512 hash algorithm missing!");
 				e.printStackTrace();
 			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (XMLStreamException e) {
+				System.err.println("Error: Cannot read manifest.xml or xml file is broken.");
 				e.printStackTrace();
 			}
 		} else if (opts.getOption().equals(Option.CHECK)) {
@@ -392,46 +584,69 @@ public class DemoApplication {
 					System.out.println(INVALIDMESSAGE);
 				}
 			} catch (NoSuchAlgorithmException e) {
+				System.err.println("Error: SHA512 hash algorithm not available!");
 				e.printStackTrace();
 			} catch (IOException e) {
-				System.out.println(INVALIDMESSAGE);
 				e.printStackTrace();
 			} catch (MissingOrderingFileException e) {
-				System.out.println(INVALIDMESSAGE);
+				System.err.println("Error: Missing file order information!");
 				e.printStackTrace();
 			} catch (MissingDataFileException e) {
-				System.out.println(INVALIDMESSAGE);
+				System.err.println("Error: Cannot read one or more of the data files!");
 				e.printStackTrace();
 			} catch (MissingIntegrityFileException e) {
-				System.out.println(INVALIDMESSAGE);
+				System.err.println("Error: Missing integrity information!");
+				e.printStackTrace();
+			} catch (XMLStreamException e) {
+				System.err.println("Error: Cannot read manifest.xml or xml file is broken!");
+				e.printStackTrace();
+			} catch (InvalidInputException e) {
+				System.err.println("Error: Invalid integrity or ordering information!");
 				e.printStackTrace();
 			}
 		} else if (opts.getOption().equals(Option.CONTAINS)) {
 			try {
 				boolean contains = checkContains(opts.getPath1(), opts.getPath2());
 				if (contains) {
-					System.out.println("VALID");
 					System.out.println(opts.getPath1());
 					System.out.println("is an extended version of");
 					System.out.println(opts.getPath2());
 				} else {
-					System.out.println("INVALID");
 					System.out.println(opts.getPath1());
 					System.out.println("is NOT an extended version of");
 					System.out.println(opts.getPath2());
 				}
 			} catch (NoSuchAlgorithmException e) {
+				System.err.println("Error: SHA512 hash algorithm not available!");
 				e.printStackTrace();
 			} catch (IOException e) {
 				e.printStackTrace();
 			} catch (MissingOrderingFileException e) {
-				System.out.println(INVALIDMESSAGE);
+				System.err.println("Error: Missing file order information!");
 				e.printStackTrace();
 			} catch (MissingDataFileException e) {
-				System.out.println(INVALIDMESSAGE);
+				System.err.println("Error: Cannot read one or more of the data files!");
+				e.printStackTrace();
+			} catch (XMLStreamException e) {
+				System.err.println("Error: Cannot read manifest.xml or xml file is broken!");
+				e.printStackTrace();
+			} catch (InvalidInputException e) {
+				System.err.println("Error: Invalid ordering information!");
 				e.printStackTrace();
 			}
 		}
+	}
+	
+	private static void bugfixMain() {
+		// String homeDir = System.getProperty("user.home");
+		// String testDirCurrent = homeDir
+		// + "/Desktop/projekt-digitales-magazin/testcases";
+		// String testDirOld = homeDir
+		// + "/Desktop/projekt-digitales-magazin/testcases-old";
+		//
+		// args = new String[] {"-c", "--full", testDirCurrent};
+
+		
 
 		// createIntegrityData(testDirCurrent, Mode.ROOTS);
 		// createIntegrityData(testDirOld, Mode.ROOTS);
@@ -440,6 +655,35 @@ public class DemoApplication {
 		// System.out.println(checkIntegrity(testDirOld));
 		//
 		// System.out.println(checkContains(testDirCurrent, testDirOld));
+		
+		String baseDir = "";
+		
+		String statusMessage = null;
+		try {
+			statusMessage = createIntegrityData(baseDir, Mode.FULL);
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (MissingDataFileException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (XMLStreamException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println(statusMessage);
+		
+		
+	}
+
+	public static void main(String[] args) {
+		
+		demoMain(args);
+		
+//		bugfixMain();
 
 	}
 

@@ -1,5 +1,6 @@
 package de.cbraeutigam.archint.util;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -11,13 +12,19 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import javax.xml.stream.XMLStreamException;
+
+import de.cbraeutigam.archint.hashforest.InvalidInputException;
+import de.cbraeutigam.archint.xmlparser.FileItem;
+import de.cbraeutigam.archint.xmlparser.ManifestStAXReader;
+
 /**
- * Helper class to maintain the order of the data from which the integrity was
- * computed in the case that there is no implicit ordering avaliable. This is
- * basically a list of data identifiers which may be filenames, GUID's, URN's or
- * whatever is suitable to describe the data. If this doesn't directly reference
- * the file locations, a mapping from identifiers to locations must be provided
- * by the application. Whatever identifier is used, it must not contain newline
+ * Helper class to maintain the order of the data whose integrity was computed
+ * in the case that there is no implicit ordering avaliable. This is basically a
+ * list of data identifiers which may be filenames, GUID's, URN's or whatever is
+ * suitable to describe the data. If this doesn't directly reference the file
+ * locations, a mapping from identifiers to locations must be provided by the
+ * application. Whatever identifier is used, it must not contain newline
  * characters as these are used to separate identifiers in text mode
  * serialization.
  * 
@@ -185,7 +192,7 @@ public class Ordering implements TextSerializable, ByteSerializable {
 	}
 
 	@Override
-	public void readFrom(Reader r) throws IOException {
+	public void readFrom(Reader r) throws IOException, InvalidInputException {
 		reset();
 		char[] buf = new char[BUFSIZE];
 		StringBuilder sb = new StringBuilder();
@@ -198,11 +205,30 @@ public class Ordering implements TextSerializable, ByteSerializable {
 			identifiers.add(lines[i]);
 		}
 		isValid = computeChecksum(identifiers).equals(lines[0]);
+		if (!isValid) {
+			throw new InvalidInputException("Invalid checksum for ordering information!");
+		}
 	}
 
 	private void reset() {
 		identifiers.clear();
 		isValid = false;
+	}
+	
+	// FIXME: hack to provide manifest reading capability
+	public void readFromManifest(String fileName)
+			throws FileNotFoundException, XMLStreamException {
+		reset();
+		ManifestStAXReader reader = new ManifestStAXReader();
+		List<FileItem> fileItems = reader.readManifest(fileName);
+		for (FileItem fi : fileItems) {
+			identifiers.add(fi.getFileName());
+		}
+		/*
+		 *  FIXME: currently there is no validity information provided within
+		 *  manifest files
+		 */
+		isValid = true;
 	}
 	
 	@Override

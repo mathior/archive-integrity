@@ -304,7 +304,7 @@ implements TextSerializable, ByteSerializable {
 	
 	@SuppressWarnings("unchecked")
 	@Override
-	public void readFrom(Reader r) throws IOException {
+	public void readFrom(Reader r) throws IOException, InvalidInputException {
 		leafs = new ArrayList<T>();
 		trees = new ArrayList<T[]>();
 		
@@ -366,7 +366,7 @@ implements TextSerializable, ByteSerializable {
 		if (!parts[0].equals(Const.CHECKSUM)
 				|| !parts[1].equals(computedChecksum)) {
 			throw new InvalidInputException(
-					"Invalid checksum for integrity data!");
+					"Invalid checksum for integrity information!");
 		}
 		
 		isDirty = true;

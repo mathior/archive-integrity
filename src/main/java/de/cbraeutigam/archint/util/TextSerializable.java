@@ -5,6 +5,8 @@ import java.io.Reader;
 import java.io.Serializable;
 import java.io.Writer;
 
+import de.cbraeutigam.archint.hashforest.InvalidInputException;
+
 /**
  * Interface for classes that must support writing to and reading from character
  * streams.
@@ -26,6 +28,6 @@ public interface TextSerializable extends Serializable {
 	 * Reads this object from r.
 	 * @param r
 	 */
-	public void readFrom(Reader r) throws IOException;
+	public void readFrom(Reader r) throws IOException, InvalidInputException;
 
 }

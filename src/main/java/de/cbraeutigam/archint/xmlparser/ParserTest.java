@@ -18,7 +18,7 @@ public class ParserTest {
 
 	public static void main(String[] args) throws FileNotFoundException, XMLStreamException {
 		String manifestFileName = "dip-example/7551b9b4-2c90-4207-9ecf-d8a2ebbb08a7/manifest.xml";
-		ManifestStAXParser read = new ManifestStAXParser();
+		ManifestStAXReader read = new ManifestStAXReader();
 		List<FileItem> files = read.readManifest(manifestFileName);
 		for (FileItem fileItem : files) {
 			System.out.println(fileItem);

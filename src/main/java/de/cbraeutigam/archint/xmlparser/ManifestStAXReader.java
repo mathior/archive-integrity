@@ -22,7 +22,7 @@ import javax.xml.stream.events.XMLEvent;
  * @since 2015-02-26
  *
  */
-public class ManifestStAXParser {
+public class ManifestStAXReader {
 	
 	// cf. http://www.vogella.com/tutorials/JavaXML/article.html
 	
