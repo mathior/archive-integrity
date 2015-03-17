@@ -132,7 +132,7 @@ public class DemoApplication {
 				readHashForest(baseDir + File.separator + HashForest.INTEGRITYFILENAME);
 		
 		// read ordering from the file denoted in the integrity data
-		String orderingFileName = givenIntegrityData.getOrdering();
+		String orderingFileName = givenIntegrityData.getOrderingInformationLocation();
 		
 		File orderingFile =
 				new File(baseDir + File.separator + orderingFileName);
@@ -307,9 +307,9 @@ public class DemoApplication {
 		HashForest<SHA512HashValue> hf = computeHashForest(baseDir, fileOrder);
 		
 		if (manifestExists) {
-			hf.setOrdering(MANIFESTFILENAME);
+			hf.setOrderingInformationLocation(MANIFESTFILENAME);
 		} else {
-			hf.setOrdering(Ordering.ORDERFILENAME);
+			hf.setOrderingInformationLocation(Ordering.ORDERFILENAME);
 		}
 
 		if (mode.equals(Mode.ROOTS)) {

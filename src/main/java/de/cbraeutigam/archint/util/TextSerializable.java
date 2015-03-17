@@ -20,13 +20,13 @@ public interface TextSerializable extends Serializable {
 	
 	/**
 	 * Writes this object to w.
-	 * @param w
+	 * @param w Writer
 	 */
 	public void writeTo(Writer w) throws IOException;
 	
 	/**
 	 * Reads this object from r.
-	 * @param r
+	 * @param r Reader
 	 */
 	public void readFrom(Reader r) throws IOException, InvalidInputException;
 

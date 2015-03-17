@@ -2,8 +2,6 @@ package de.cbraeutigam.archint.hashforest;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.Reader;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -15,21 +13,21 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import de.cbraeutigam.archint.util.ByteSerializable;
 import de.cbraeutigam.archint.util.ChecksumProvider;
 import de.cbraeutigam.archint.util.DateProvider;
+import de.cbraeutigam.archint.util.Ordering;
 import de.cbraeutigam.archint.util.TextSerializable;
 
 /**
  * 
  * @author Christof Bräutigam (christof.braeutigam@cbraeutigam.de)
- * @version $Id: $
+ * @version 2015-03-17T19:39:15
  * @since 2014-12-12
+ * 
  *
  * @param <T>
  */
-public class HashForest<T extends HashValue>
-implements TextSerializable, ByteSerializable {
+public class HashForest<T extends HashValue> implements TextSerializable {
 	
 	public enum Mode {
 		FULL("full"),
@@ -61,9 +59,8 @@ implements TextSerializable, ByteSerializable {
 	public final static String INTEGRITYFILENAME = "integritycomponent-integrity.txt";
 	
 	private int version = 1;
-	private String ordering = "implicit";
+	private String orderingInformationLocation = "implicit";
 	
-	//private List<HashTreeNode<T>> hashTrees = new ArrayList<HashTreeNode<T>>();
 	private List<T> leafs = new ArrayList<T>();
 	private List<T[]> trees = new ArrayList<T[]>();
 	
@@ -71,7 +68,12 @@ implements TextSerializable, ByteSerializable {
 	private int leafsCount = 0;
 	private int treesCount = 0;
 	
+	/*
+	 * Flag that denotes a modified full forest, i.e. this must be set true if
+	 * new leafs are added and is checked when trees are built.
+	 */
 	private boolean isDirty = false;
+	
 	private Mode mode = Mode.FULL;
 	
 	private void checkIsDirty() {
@@ -83,6 +85,10 @@ implements TextSerializable, ByteSerializable {
 		}
 	}
 	
+	/**
+	 * Returns true iff this forest is empty.
+	 * @return true if forest is empty, otherwise false.
+	 */
 	public boolean isEmpty() {
 		return leafs.isEmpty();
 	}
@@ -141,16 +147,28 @@ implements TextSerializable, ByteSerializable {
 		return forest;
 	}
 	
-	
+	/**
+	 * Update this forest with a new hash value.
+	 * @param hashValue
+	 */
 	public void update(T hashValue) {
+		// TODO: suppress this if mode is ROOTS
 		leafs.add(hashValue);
 		isDirty = true;
 	}
 	
+	/**
+	 * Returns a list of the leafs (i.e. hash values of data items).
+	 * @return List of leafs.
+	 */
 	public List<T> getLeafs() {
 		return Collections.unmodifiableList(leafs);
 	}
 	
+	/**
+	 * Returns a list of the roots of all trees in the forest.
+	 * @return List of roots.
+	 */
 	public List<T> getRoots() {
 		checkIsDirty();
 		List<T> roots = new ArrayList<T>();
@@ -160,6 +178,13 @@ implements TextSerializable, ByteSerializable {
 		return roots;
 	}
 	
+	/**
+	 * Returns a list of the trees in this forest. Each tree is represented as a
+	 * list, more specifically each list is a level-order representation of a
+	 * binary tree (i.e. a parent node at index n has child nodes at 2*n+1
+	 * (left) and 2*n+2 (right)).
+	 * @return List of trees represented as lists.
+	 */
 	public List<T[]> getTrees() {
 		checkIsDirty();
 		List<T[]> treesNew = new ArrayList<T[]>();
@@ -170,8 +195,11 @@ implements TextSerializable, ByteSerializable {
 	}
 	
 	
-	/*
-	 * in this case just compare the roots, because the trees my be pruned
+	/**
+	 * Compares this HashForest object with the other one and returns true iff
+	 * the forests are equal.
+	 * @param other The HashForest to compare this to.
+	 * @return true if the forests are equal, otherwise false.
 	 */
 	public boolean validate(HashForest<T> other) {
 		checkIsDirty();
@@ -193,6 +221,16 @@ implements TextSerializable, ByteSerializable {
 		return result;
 	}
 	
+	/**
+	 * Returns true if this HashForest is equal to or a superset of the other
+	 * HashForest. Because hash forests can only grow by adding more leafs to
+	 * the "end" of a forest, being a superset means that this is an extended
+	 * version of the other forest and the other forest is a valid sub-forest. 
+	 * @param other A hash forest that should be checked if it is a valid
+	 *         sub-forest.
+	 * @return true if this HashForest is equal to or a superset of the other
+	 * HashForest, othrewise false
+	 */
 	public boolean contains(HashForest<T> other) {
 		checkIsDirty();
 		if (validate(other)) {
@@ -221,25 +259,57 @@ implements TextSerializable, ByteSerializable {
 	}
 	
 	/**
-	 * Set mode to just output the roots. This setting cannot be reversed.
-	 * By keeping only the roots information a forest cannot be extended in the
-	 * future, but contains() and validate() are supported.
+	 * Set mode to "roots", i.e. just the roots of all trees are stored.
+	 * <strong>Note that this setting cannot be reversed</strong>. By keeping
+	 * only the roots information a <strong>forest cannot be extended in the
+	 * future</strong>, just validate() is supported.
 	 */
 	public void pruneForest() {
 		checkIsDirty();  // recreate trees one last time
 		this.mode = Mode.ROOTS;
 	}
 	
+	/**
+	 * Returns the mode of this hash forest object. Mode.FULL denotes that this forest
+	 * can be extended, Mode.ROOTS denotes that this forest can only be used
+	 * to validate the data.
+	 * @return hashforest mode
+	 */
 	public Mode getMode() {
 		return mode;
 	}
 	
-	public void setOrdering(String ordering) {
-		this.ordering = ordering;
+	/**
+	 * Set where the ordering information for this hashforest is stored. Usually
+	 * this would be a file name e.g. the default file name given in
+	 * {@link Ordering}.ORDERFILENAME, a database table name, or anything
+	 * suitable to store an ordered list of data items. This information will be
+	 * written to the serialized integrity information so it's available in
+	 * deserialized HashForests, however, this isn't more than a note where the
+	 * ordering information is stored. <strong>Note that the application using
+	 * this HashForest object is responsible for storing the actual ordering
+	 * information in the correct place in order to allow validation of the
+	 * data.</strong>
+	 * 
+	 * @see getOrderingInformationLocation()
+	 * 
+	 * @param orderingInfo
+	 *            Ordering information storage location
+	 */
+	public void setOrderingInformationLocation(String orderingInfo) {
+		this.orderingInformationLocation = orderingInfo;
 	}
 	
-	public String getOrdering() {
-		return ordering;
+	/**
+	 * Returns the location where ordering information for this HashForest
+	 * component is stored.
+	 * 
+	 * @see setOrderingInformationLocation(String orderingInfo)
+	 * 
+	 * @return Ordering information storage location
+	 */
+	public String getOrderingInformationLocation() {
+		return orderingInformationLocation;
 	}
 	
 	private void updateChecksum(ChecksumProvider cp, String field, String value) {
@@ -271,7 +341,7 @@ implements TextSerializable, ByteSerializable {
 		writeChecked(w, cp, Const.DATE, dateFormattet);
 		writeChecked(w, cp, Const.LEAFS, Integer.toString(leafsCount));
 		writeChecked(w, cp, Const.TREES, Integer.toString(treesCount));
-		writeChecked(w, cp, Const.ORDER, ordering);
+		writeChecked(w, cp, Const.ORDER, orderingInformationLocation);
 		writeChecked(w, cp, Const.MODE, mode.toString());
 		
 		if (mode.equals(Mode.ROOTS)) {
@@ -304,6 +374,7 @@ implements TextSerializable, ByteSerializable {
 		}
 	}
 	
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public void readFrom(Reader r) throws IOException, InvalidInputException {
@@ -334,7 +405,7 @@ implements TextSerializable, ByteSerializable {
 		
 		line = br.readLine();
 		value = readChecked(cp, line, Const.ORDER);
-		ordering = value;
+		orderingInformationLocation = value;
 		
 		line = br.readLine();
 		value = readChecked(cp, line, Const.MODE);
@@ -383,18 +454,6 @@ implements TextSerializable, ByteSerializable {
 			e.printStackTrace();
 		}
 		return sw.toString();
-	}
-
-	@Override
-	public void writeTo(OutputStream os) throws IOException {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("not yet implemented");
-	}
-
-	@Override
-	public void readFrom(InputStream is) throws IOException {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("not yet implemented");
 	}
 
 }
