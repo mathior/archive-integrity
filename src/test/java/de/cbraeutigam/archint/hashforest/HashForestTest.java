@@ -2,12 +2,17 @@ package de.cbraeutigam.archint.hashforest;
 
 import static org.junit.Assert.*;
 
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import de.cbraeutigam.archint.util.DateProvider;
 
 public class HashForestTest {
 
@@ -397,6 +402,45 @@ public class HashForestTest {
 		assertTrue(hfComplete.validate(hfComplete2));
 
 		// TODO: add more complex cases
+	}
+	
+	@Test
+	public void testDateTimeHandling() throws IOException, InvalidInputException {
+		HashForest<SHA512HashValue> hf = new HashForest<SHA512HashValue>();
+		hf.update(sha512Hashes.get(0));
+		
+		StringWriter sw = new StringWriter();
+		hf.writeTo(sw);
+		
+		String dateTime1 = DateProvider.date2String(hf.getFirstSerializedDateTime());
+		
+		StringReader sr = new StringReader(sw.toString());
+		HashForest<SHA512HashValue> hf2 = new HashForest<SHA512HashValue>();
+		hf2.readFrom(sr);
+		String dateTime2 = DateProvider.date2String(hf2.getFirstSerializedDateTime());
+		
+		assertEquals(dateTime1, dateTime2);
+		
+		hf2.update(sha512Hashes.get(1));
+		sw = new StringWriter();
+		hf2.writeTo(sw);
+		String dateTime3 = DateProvider.date2String(hf2.getFirstSerializedDateTime());
+		
+		assertNotEquals(dateTime2, dateTime3);
+		
+		hf2.pruneForest();
+		sw = new StringWriter();
+		hf2.writeTo(sw);
+		String dateTime4 = DateProvider.date2String(hf2.getFirstSerializedDateTime());
+		
+		assertEquals(dateTime3, dateTime4);
+		
+		sr = new StringReader(sw.toString());
+		HashForest<SHA512HashValue> hf3 = new HashForest<SHA512HashValue>();
+		hf3.readFrom(sr);
+		String dateTime5 = DateProvider.date2String(hf3.getFirstSerializedDateTime());
+		
+		assertEquals(dateTime3, dateTime5);
 	}
 
 }

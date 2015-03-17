@@ -4,10 +4,23 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+/**
+ * 
+ * Helper class that provides Date<->String conversion.
+ * 
+ * @author Christof Bräutigam (christof.braeutigam@cbraeutigam.de)
+ * @version 2015-03-17T19:59:03
+ * @since 2014-12-12
+ *
+ */
 public class DateProvider {
 	
-//	private static final String DATEPATTERN = "yyyy-MM-dd'T'HH:mm:ss";
-	private static final String DATEPATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+//	public static final String DATEPATTERN = "yyyy-MM-dd'T'HH:mm:ss";
+	/*
+	 * We need the full information to provide an equality check with parsed
+	 * dates.
+	 */
+	public static final String DATEPATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
 	
 	public static Date string2Date(String formattedDate) throws ParseException {
 		SimpleDateFormat sdf = new SimpleDateFormat(DATEPATTERN);
@@ -30,7 +43,7 @@ public class DateProvider {
 		Date anotherDate = string2Date(anotherFormattedDate);
 		System.out.println(anotherDate);
 		
-		// this fails if milliseconds and timezone information is lost
+		// this prints false if milliseconds and timezone information is lost...
 		Date date2 = new Date();
 		String formattedDate2 = date2String(date2);
 		Date date2Again = string2Date(formattedDate2);

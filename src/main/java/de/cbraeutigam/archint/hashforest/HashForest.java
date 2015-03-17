@@ -8,6 +8,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -21,7 +22,7 @@ import de.cbraeutigam.archint.util.TextSerializable;
 /**
  * 
  * @author Christof Bräutigam (christof.braeutigam@cbraeutigam.de)
- * @version 2015-03-17T19:39:15
+ * @version 2015-03-17T21:14:00
  * @since 2014-12-12
  * 
  *
@@ -46,10 +47,8 @@ public class HashForest<T extends HashValue> implements TextSerializable {
 		public static Mode fromString(String s) {
 			if (s.equals(Mode.FULL.modeString)) {
 				return Mode.FULL;
-			} else if (s.equals(Mode.ROOTS.modeString)) {
-				return Mode.ROOTS;
 			} else {
-				return Mode.ROOTS;  // TODO: add safe default case
+				return Mode.ROOTS;  // assume roots mode as safe case
 			}
 		}
 	}
@@ -59,7 +58,17 @@ public class HashForest<T extends HashValue> implements TextSerializable {
 	public final static String INTEGRITYFILENAME = "integritycomponent-integrity.txt";
 	
 	private int version = 1;
+	
+	/*
+	 * Holds a note where the associated ordering information is located.
+	 * "implicit" is a default value.
+	 */
 	private String orderingInformationLocation = "implicit";
+	
+	/*
+	 * Holds the date and time when this hash forest was first serialized.
+	 */
+	private Date firstSerializedDateTime = null;
 	
 	private List<T> leafs = new ArrayList<T>();
 	private List<T[]> trees = new ArrayList<T[]>();
@@ -74,14 +83,16 @@ public class HashForest<T extends HashValue> implements TextSerializable {
 	 */
 	private boolean isDirty = false;
 	
-	private Mode mode = Mode.FULL;
+	private Mode mode = Mode.FULL;  // full is the default mode
 	
 	private void checkIsDirty() {
-		if (isDirty && mode.equals(Mode.FULL)) {
+		if ((isDirty || trees.isEmpty()) && mode.equals(Mode.FULL)) {
 			trees = createForest(leafs);
 			leafsCount = leafs.size();
 			treesCount = trees.size();
-			isDirty = false;
+			if (isDirty) {
+				isDirty = false;
+			}
 		}
 	}
 	
@@ -312,6 +323,14 @@ public class HashForest<T extends HashValue> implements TextSerializable {
 		return orderingInformationLocation;
 	}
 	
+	/**
+	 * Returns the Date when this hash forest was first serialized.
+	 * @return Date when this hash forest was first serialized.
+	 */
+	public Date getFirstSerializedDateTime() {
+		return (Date) this.firstSerializedDateTime.clone();
+	}
+	
 	private void updateChecksum(ChecksumProvider cp, String field, String value) {
 		cp.update(field.getBytes(Charset.forName("UTF-8")));
 		cp.update(value.getBytes(Charset.forName("UTF-8")));
@@ -328,7 +347,27 @@ public class HashForest<T extends HashValue> implements TextSerializable {
 	
 	@Override
 	public void writeTo(Writer w) throws IOException {
-		checkIsDirty();
+		
+		/*
+		 * Compute a new datetime string as serialization timestamp if either
+		 * there was none computed before or this hash forest object has been
+		 * extended. If this hash forest is in ROOTS mode or in FULL mode but
+		 * has not been extended, reuse the stored datetime.
+		 */
+		Date date = null;
+		if ((firstSerializedDateTime == null) || (mode.equals(Mode.FULL) && isDirty)) {
+			date = new Date();
+		} else {
+			date = firstSerializedDateTime;
+		}
+		String dateFormattet = DateProvider.date2String(date);
+		
+		/*
+		 * TODO: This is not necessary if the hash forest is in FULL mode.
+		 * It's just the lazy option to provide a trees count.
+		 */
+		checkIsDirty();  // compute trees
+		
 		ChecksumProvider cp = null;
 		try {
 			cp = new ChecksumProvider(MessageDigest.getInstance("SHA-512"));
@@ -337,7 +376,6 @@ public class HashForest<T extends HashValue> implements TextSerializable {
 		}
 		
 		writeChecked(w, cp, Const.VERSION, Integer.toString(version));
-		String dateFormattet = DateProvider.date2String(new Date());
 		writeChecked(w, cp, Const.DATE, dateFormattet);
 		writeChecked(w, cp, Const.LEAFS, Integer.toString(leafsCount));
 		writeChecked(w, cp, Const.TREES, Integer.toString(treesCount));
@@ -359,6 +397,8 @@ public class HashForest<T extends HashValue> implements TextSerializable {
 		w.write(Const.SEPARATOR);
 		w.write(checksum);
 		w.write(Const.NEWLINE);
+		
+		firstSerializedDateTime = date;
 	}
 	
 	
@@ -394,6 +434,11 @@ public class HashForest<T extends HashValue> implements TextSerializable {
 		
 		line = br.readLine();
 		value = readChecked(cp, line, Const.DATE);
+		try {
+			firstSerializedDateTime = DateProvider.string2Date(value);
+		} catch (ParseException e1) {
+			throw new InvalidInputException("Date format invalid.");
+		}
 		
 		line = br.readLine();
 		value = readChecked(cp, line, Const.LEAFS);
@@ -442,7 +487,8 @@ public class HashForest<T extends HashValue> implements TextSerializable {
 					"Invalid checksum for integrity information!");
 		}
 		
-		isDirty = true;
+		// isDirty = true;
+		isDirty = false;
 	}
 	
 	@Override
