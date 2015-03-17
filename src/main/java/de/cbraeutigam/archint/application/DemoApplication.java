@@ -67,10 +67,9 @@ public class DemoApplication {
 		}
 
 	}
-
-	private final static String ORDERFILENAME = "ord.txt";
+	
+	
 	private final static String MANIFESTFILENAME = "manifest.xml";
-	private final static String INTEGRITYFILENAME = "integrity.txt";
 	private final static String VALIDMESSAGE = "VALID";
 	private final static String INVALIDMESSAGE = "INVALID";
 	
@@ -130,7 +129,7 @@ public class DemoApplication {
 
 		// read integrity data
 		HashForest<SHA512HashValue> givenIntegrityData = 
-				readHashForest(baseDir + File.separator + INTEGRITYFILENAME);
+				readHashForest(baseDir + File.separator + HashForest.INTEGRITYFILENAME);
 		
 		// read ordering from the file denoted in the integrity data
 		String orderingFileName = givenIntegrityData.getOrdering();
@@ -192,7 +191,7 @@ public class DemoApplication {
 		File manifestFile1 =
 				new File(baseDir1 + File.separator + MANIFESTFILENAME);
 		File orderingFile1 =
-				new File(baseDir1 + File.separator + ORDERFILENAME);
+				new File(baseDir1 + File.separator + Ordering.ORDERFILENAME);
 		
 		if (manifestFile1.isFile() && manifestFile1.canRead()) {
 			fileOrdering1 = readFileOrdering(manifestFile1.getAbsolutePath());
@@ -209,7 +208,7 @@ public class DemoApplication {
 		File manifestFile2 =
 				new File(baseDir2 + File.separator + MANIFESTFILENAME);
 		File orderingFile2 =
-				new File(baseDir2 + File.separator + ORDERFILENAME);
+				new File(baseDir2 + File.separator + Ordering.ORDERFILENAME);
 		
 		if (manifestFile2.isFile() && manifestFile2.canRead()) {
 			fileOrdering2 = readFileOrdering(manifestFile2.getAbsolutePath());
@@ -247,14 +246,14 @@ public class DemoApplication {
 			MissingDataFileException, IOException, XMLStreamException {
 		
 		// this is the create routine, so if an ordering file exists, delete it
-		File orderFile = new File(baseDir + File.separator + ORDERFILENAME);
+		File orderFile = new File(baseDir + File.separator + Ordering.ORDERFILENAME);
 		if (orderFile.isFile()) {
 			orderFile.delete();
 		}
 		
 		// this is the create routine, so if an integrity file exists, delete it
 		File integrityFile = new File(baseDir + File.separator
-				+ INTEGRITYFILENAME);
+				+ HashForest.INTEGRITYFILENAME);
 		if (integrityFile.isFile()) {
 			integrityFile.delete();
 		}
@@ -285,7 +284,7 @@ public class DemoApplication {
 			// the ordering must be integrated into the integrity information
 			Ordering ordering = new Ordering(
 					new ChecksumProvider(MessageDigest.getInstance("SHA-512")));
-			ordering.add(ORDERFILENAME);
+			ordering.add(Ordering.ORDERFILENAME);
 			/*
 			 * ordering should use relative paths, therefore use the full path
 			 * and cut the full path part of the base dir
@@ -310,7 +309,7 @@ public class DemoApplication {
 		if (manifestExists) {
 			hf.setOrdering(MANIFESTFILENAME);
 		} else {
-			hf.setOrdering(ORDERFILENAME);
+			hf.setOrdering(Ordering.ORDERFILENAME);
 		}
 
 		if (mode.equals(Mode.ROOTS)) {

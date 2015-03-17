@@ -58,6 +58,8 @@ implements TextSerializable, ByteSerializable {
 	
 	private static final long serialVersionUID = 4159661696848135993L;
 	
+	public final static String INTEGRITYFILENAME = "integritycomponent-integrity.txt";
+	
 	private int version = 1;
 	private String ordering = "implicit";
 	

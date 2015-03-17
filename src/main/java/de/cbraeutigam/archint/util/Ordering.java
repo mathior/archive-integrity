@@ -36,6 +36,8 @@ import de.cbraeutigam.archint.xmlparser.ManifestStAXReader;
 public class Ordering implements TextSerializable, ByteSerializable {
 
 	private static final long serialVersionUID = -5033306062362219759L;
+	
+	public final static String ORDERFILENAME = "integritycomponent-order.txt";
 
 	private final static Charset CHARSET = Charset.forName("UTF-8");
 	private final static int BUFSIZE = 1024;
