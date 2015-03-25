@@ -1,6 +1,5 @@
 package de.cbraeutigam.archint.util;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -12,11 +11,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import javax.xml.stream.XMLStreamException;
-
 import de.cbraeutigam.archint.hashforest.InvalidInputException;
-import de.cbraeutigam.archint.xmlparser.FileItem;
-import de.cbraeutigam.archint.xmlparser.ManifestStAXReader;
 
 /**
  * Helper class to maintain the order of the data whose integrity was computed
@@ -215,22 +210,6 @@ public class Ordering implements TextSerializable, ByteSerializable {
 	private void reset() {
 		identifiers.clear();
 		isValid = false;
-	}
-	
-	// FIXME: hack to provide manifest reading capability
-	public void readFromManifest(String fileName)
-			throws FileNotFoundException, XMLStreamException {
-		reset();
-		ManifestStAXReader reader = new ManifestStAXReader();
-		List<FileItem> fileItems = reader.readManifest(fileName);
-		for (FileItem fi : fileItems) {
-			identifiers.add(fi.getFileName());
-		}
-		/*
-		 *  FIXME: currently there is no validity information provided within
-		 *  manifest files
-		 */
-		isValid = true;
 	}
 	
 	@Override

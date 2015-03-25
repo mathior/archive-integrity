@@ -21,8 +21,6 @@ import de.cbraeutigam.archint.hashforest.InvalidInputException;
 import de.cbraeutigam.archint.hashforest.SHA512HashValue;
 import de.cbraeutigam.archint.util.ChecksumProvider;
 import de.cbraeutigam.archint.util.Ordering;
-import de.cbraeutigam.archint.xmlparser.FileItem;
-import de.cbraeutigam.archint.xmlparser.ManifestStAXReader;
 
 public class DemoApplication {
 
@@ -87,26 +85,12 @@ public class DemoApplication {
 	 * @throws InvalidInputException 
 	 */
 	private static List<String> readFileOrdering(String orderingFilePath)
-			throws XMLStreamException, NoSuchAlgorithmException,
-			MissingOrderingFileException, IOException, InvalidInputException {
+			throws NoSuchAlgorithmException, MissingOrderingFileException,
+			IOException, InvalidInputException {
 		List<String> fileOrder = new ArrayList<String>();
-		if (orderingFilePath.endsWith(MANIFESTFILENAME)) {
-			// file order is provided explicitely by the manifest file
-			ManifestStAXReader reader = new ManifestStAXReader();
-			List<FileItem> fileItems = reader.readManifest(orderingFilePath);
-			/*
-			 * FIXME: currently the manifest file was integrated into the
-			 * integrity information but not added to the manifest itself
-			 */
-			fileOrder.add(MANIFESTFILENAME);
-			for (FileItem fi : fileItems) {
-				fileOrder.add(fi.getFileName());
-			}
-		} else {
-			// file order should be provided explicitely by an ordering file
-			Ordering ordering = readSimpleOrdering(orderingFilePath);
-			fileOrder = ordering.getIdentifiers();
-		}
+		// file order should be provided explicitely by an ordering file
+		Ordering ordering = readSimpleOrdering(orderingFilePath);
+		fileOrder = ordering.getIdentifiers();
 		return fileOrder;
 	}
 	
@@ -263,59 +247,41 @@ public class DemoApplication {
 		 * if none exists read the files and write a ordering file
 		 */
 		List<String> fileOrder = new ArrayList<String>();
-		boolean manifestExists = false;
-		File manifestFile = new File(baseDir + File.separator
-				+ MANIFESTFILENAME);
-		if (manifestFile.isFile() && manifestFile.canRead()) {
-			// file order is provided explicitely by the manifest file
-			manifestExists = true;
-			ManifestStAXReader reader = new ManifestStAXReader();
-			List<FileItem> fileItems
-				= reader.readManifest(manifestFile.getAbsolutePath());
-			// the manifest must be integrated into the integrity information
-			fileOrder.add(MANIFESTFILENAME);
-			for (FileItem fi : fileItems) {
-				fileOrder.add(fi.getFileName());
-			}
-		} else {
-			// file order is provided implicitely by file names
-			List<File> fileTree = listFileTree(new File(baseDir));
-			Collections.sort(fileTree);
-			// the ordering must be integrated into the integrity information
-			Ordering ordering = new Ordering(
-					new ChecksumProvider(MessageDigest.getInstance("SHA-512")));
-			ordering.add(Ordering.ORDERFILENAME);
-			/*
-			 * ordering should use relative paths, therefore use the full path
-			 * and cut the full path part of the base dir
-			 */
-			File baseDirF = new File(baseDir);
-			for (File f : fileTree) {
-				ordering.add(f.getAbsolutePath().substring(
-						baseDirF.getAbsolutePath().length() + 1));
-			}
-			
-			// save the ordering file
-			FileWriter fw = new FileWriter(orderFile);
-			ordering.writeTo(fw);
-			fw.close();
-			
-			fileOrder = ordering.getIdentifiers();
+		
+		
+		// file order is provided implicitely by file names
+		List<File> fileTree = listFileTree(new File(baseDir));
+		Collections.sort(fileTree);
+		// the ordering must be integrated into the integrity information
+		Ordering ordering = new Ordering(
+				new ChecksumProvider(MessageDigest.getInstance("SHA-512")));
+		ordering.add(Ordering.ORDERFILENAME);
+		/*
+		 * ordering should use relative paths, therefore use the full path
+		 * and cut the full path part of the base dir
+		 */
+		File baseDirF = new File(baseDir);
+		for (File f : fileTree) {
+			ordering.add(f.getAbsolutePath().substring(
+					baseDirF.getAbsolutePath().length() + 1));
 		}
+		
+		// save the ordering file
+		FileWriter fw = new FileWriter(orderFile);
+		ordering.writeTo(fw);
+		fw.close();
+		
+		fileOrder = ordering.getIdentifiers();
 		
 		// create and write the integrity information
 		HashForest<SHA512HashValue> hf = computeHashForest(baseDir, fileOrder);
 		
-		if (manifestExists) {
-			hf.setOrderingInformationLocation(MANIFESTFILENAME);
-		} else {
-			hf.setOrderingInformationLocation(Ordering.ORDERFILENAME);
-		}
+		hf.setOrderingInformationLocation(Ordering.ORDERFILENAME);
 
 		if (mode.equals(Mode.ROOTS)) {
 			hf.pruneForest();
 		}
-		FileWriter fw = new FileWriter(integrityFile);
+		fw = new FileWriter(integrityFile);
 		hf.writeTo(fw);
 		fw.close();
 		
@@ -333,15 +299,9 @@ public class DemoApplication {
 		statusMessage.append("Integrity information written to: ");
 		statusMessage.append(integrityFile.getName());
 		statusMessage.append("\n");
-		if (manifestExists) {
-			statusMessage.append("Ordering information provided by: ");
-			statusMessage.append(manifestFile.getName());
-			statusMessage.append("\n");
-		} else {
-			statusMessage.append("Ordering information written to: ");
-			statusMessage.append(orderFile.getName());
-			statusMessage.append("\n");
-		}
+		statusMessage.append("Ordering information written to: ");
+		statusMessage.append(orderFile.getName());
+		statusMessage.append("\n");
 		return statusMessage.toString();
 	}
 
