@@ -28,7 +28,7 @@ import de.cbraeutigam.archint.hashforest.InvalidInputException;
  * @since 2014-12-12
  * 
  */
-public class Ordering implements TextSerializable, ByteSerializable {
+public class Ordering implements TextSerializable {
 
 	private static final long serialVersionUID = -5033306062362219759L;
 	
@@ -114,67 +114,6 @@ public class Ordering implements TextSerializable, ByteSerializable {
 			checksumProvider.update(s.getBytes(CHARSET));
 		}
 		return checksumProvider.get();
-	}
-
-	@Override
-	public void writeTo(OutputStream os) throws IOException {
-
-		String checksum = computeChecksum(identifiers);
-		isValid = true;
-
-		int length;
-		byte[] bytes;
-
-		length = identifiers.size() + 1; // add one for the checksum
-
-		writeInt(length, os);
-
-		bytes = checksum.getBytes(CHARSET);
-		length = bytes.length;
-		writeInt(length, os);
-		os.write(bytes);
-
-		for (String s : identifiers) {
-			bytes = s.getBytes(CHARSET);
-			length = bytes.length;
-			writeInt(length, os);
-			os.write(bytes);
-		}
-	}
-
-	private String readString(int length, InputStream is) throws IOException {
-		byte[] buf = new byte[BUFSIZE];
-		String result;
-		if (length <= BUFSIZE) {
-			is.read(buf, 0, length);
-			result = new String(Arrays.copyOf(buf, length), CHARSET);
-			return result;
-		} else {
-			StringBuilder sb = new StringBuilder();
-			for (int l = length; l > 0; l -= BUFSIZE) {
-				is.read(buf, 0, length);
-				sb.append(new String(Arrays.copyOf(buf, length), CHARSET));
-			}
-			return sb.toString();
-		}
-	}
-
-	@Override
-	public void readFrom(InputStream is) throws IOException {
-		reset();
-
-		int elements = readInt(is);
-
-		int length = readInt(is);
-		String givenChecksum = readString(length, is);
-		
-		// subtract one from elements for the checksum
-		for (int i = 0; i < elements - 1; ++i) {
-			length = readInt(is);
-			identifiers.add(readString(length, is));
-		}
-
-		isValid = computeChecksum(identifiers).equals(givenChecksum);
 	}
 
 	@Override

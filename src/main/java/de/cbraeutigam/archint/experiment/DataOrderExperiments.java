@@ -60,14 +60,6 @@ public class DataOrderExperiments {
 		
 		System.out.println("\n output/input byte stream \n");
 		
-		ByteArrayOutputStream bos = new ByteArrayOutputStream(256);
-		o1.writeTo(bos);
-		byte[] bytes = bos.toByteArray();
-		System.out.println(bytes.length);
-		Ordering o5 = new Ordering(new ChecksumProvider(MessageDigest.getInstance("SHA-512")));
-		o5.readFrom(new ByteArrayInputStream(bytes));
-		System.out.println(o5);
-		System.out.println(o5.isValid());
 	}
 
 }

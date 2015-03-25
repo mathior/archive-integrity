@@ -118,22 +118,6 @@ public class OrderingTest {
 		o.readFrom(new StringReader(inValidString3));
 	}
 	
-	@Test
-	public void testWriteReadBinary() throws IOException {
-		Ordering o = new Ordering(cp);
-		for (String s : testItems) {
-			o.add(s);
-		}
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		o.writeTo(bos);
-		assertTrue(bos.size() == 157);
-		
-		Ordering o2 = new Ordering(cp);
-		o2.readFrom(new ByteArrayInputStream(bos.toByteArray()));
-		assertTrue(o2.isValid());
-		assertTrue(o2.getIdentifiers().equals(testItems));
-	}
-	
 	// regression
 	@Test
 	public void testWriteReadInt() throws IOException {
