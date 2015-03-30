@@ -15,6 +15,7 @@ import java.util.List;
 
 import javax.xml.stream.XMLStreamException;
 
+import de.cbraeutigam.archint.gui.App;
 import de.cbraeutigam.archint.hashforest.HashForest;
 import de.cbraeutigam.archint.hashforest.HashForest.Mode;
 import de.cbraeutigam.archint.hashforest.InvalidInputException;
@@ -322,43 +323,43 @@ public class DemoApplication {
 		return fileTree;
 	}
 	
-	/**
-	 * Helper method to compute the SHA512 hash value for a given file.
-	 * @param fileName
-	 * @return
-	 * @throws NoSuchAlgorithmException
-	 * @throws MissingDataFileException
-	 */
-	private static SHA512HashValue getHash(String fileName)
-			throws NoSuchAlgorithmException, MissingDataFileException {
-		MessageDigest sha512 = MessageDigest.getInstance("SHA-512");
-		int bufferSize = 128;
-		byte[] buffer = new byte[bufferSize];
-		File f = new File(fileName);
-		FileInputStream fis;
-		
-		try {
-			fis = new FileInputStream(f);
-			
-			int bytesRead = fis.read(buffer);
-			
-			if (bytesRead == -1) {  // file is empty, update with empty message
-				sha512.update(new byte[0]);
-			} else {
-				sha512.update(Arrays.copyOf(buffer, bytesRead));
-			}
-			
-			while ((bytesRead = fis.read(buffer)) != -1) {
-				sha512.update(Arrays.copyOf(buffer, bytesRead));
-			}
-			fis.close();
-		} catch (FileNotFoundException e) {
-			throw new MissingDataFileException("Missing file: " + fileName);
-		} catch (IOException e) {
-			throw new MissingDataFileException("Missing file: " + fileName);
-		}
-		return new SHA512HashValue(sha512.digest());
-	}
+//	/**
+//	 * Helper method to compute the SHA512 hash value for a given file.
+//	 * @param fileName
+//	 * @return
+//	 * @throws NoSuchAlgorithmException
+//	 * @throws MissingDataFileException
+//	 */
+//	private static SHA512HashValue getHash(String fileName)
+//			throws NoSuchAlgorithmException, MissingDataFileException {
+//		MessageDigest sha512 = MessageDigest.getInstance("SHA-512");
+//		int bufferSize = 128;
+//		byte[] buffer = new byte[bufferSize];
+//		File f = new File(fileName);
+//		FileInputStream fis;
+//		
+//		try {
+//			fis = new FileInputStream(f);
+//			
+//			int bytesRead = fis.read(buffer);
+//			
+//			if (bytesRead == -1) {  // file is empty, update with empty message
+//				sha512.update(new byte[0]);
+//			} else {
+//				sha512.update(Arrays.copyOf(buffer, bytesRead));
+//			}
+//			
+//			while ((bytesRead = fis.read(buffer)) != -1) {
+//				sha512.update(Arrays.copyOf(buffer, bytesRead));
+//			}
+//			fis.close();
+//		} catch (FileNotFoundException e) {
+//			throw new MissingDataFileException("Missing file: " + fileName);
+//		} catch (IOException e) {
+//			throw new MissingDataFileException("Missing file: " + fileName);
+//		}
+//		return new SHA512HashValue(sha512.digest());
+//	}
 
 	/**
 	 * Compute the hash forest for all files in the given directory based on the
@@ -374,7 +375,7 @@ public class DemoApplication {
 			MissingDataFileException {
 		HashForest<SHA512HashValue> hf = new HashForest<SHA512HashValue>();
 		for (String fileName : ordering) {
-			SHA512HashValue hashValue = getHash(baseDir + File.separator
+			SHA512HashValue hashValue = FileUtil.getHash(baseDir + File.separator
 					+ fileName);
 			hf.update(hashValue);
 		}
@@ -640,7 +641,12 @@ public class DemoApplication {
 
 	public static void main(String[] args) {
 		
-		demoMain(args);
+		if (0 == args.length) {
+			App app = new App();
+			app.run();
+		} else {
+			demoMain(args);
+		}
 		
 //		bugfixMain();
 

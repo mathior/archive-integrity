@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="create_run_jar" name="Create Runnable Jar for Project archive-integrity">
-    <!--this file was created by Eclipse Runnable JAR Export Wizard-->
     <!--ANT 1.7 is required                                        -->
-    <target name="create_run_jar">
-        <jar destfile="demo-v0.10.jar" filesetmanifest="mergewithoutmain">
+    <target name="create_run_jar" depends="compile">
+        <jar destfile="ArchiveIntegrity.jar" filesetmanifest="mergewithoutmain">
             <manifest>
                 <attribute name="Main-Class" value="de.cbraeutigam.archint.application.DemoApplication"/>
                 <attribute name="Class-Path" value="."/>
@@ -11,4 +10,21 @@
             <fileset dir="../target"/>
         </jar>
     </target>
+	
+	<target name="compile">
+	    <javac srcdir="../src/main/java" destdir="../target" includes="**/*.java" target="1.6">
+
+	        <!-- <classpath refid="classpath.base" /> -->
+	    </javac>
+	</target>
+	
+	<!-- Libraries on which code depends -->
+	<!--
+	<path id="classpath.base">   
+		<fileset dir="lib">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+	-->
+	
 </project>
