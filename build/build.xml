@@ -2,7 +2,7 @@
 <project default="create_run_jar" name="Create Runnable Jar for Project archive-integrity">
     <!--ANT 1.7 is required                                        -->
     <target name="create_run_jar" depends="compile">
-        <jar destfile="ArchiveIntegrity.jar" filesetmanifest="mergewithoutmain">
+        <jar destfile="DIPIntegrity.jar" filesetmanifest="mergewithoutmain">
             <manifest>
                 <attribute name="Main-Class" value="de.cbraeutigam.archint.application.DemoApplication"/>
                 <attribute name="Class-Path" value="."/>
