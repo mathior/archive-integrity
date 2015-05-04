@@ -32,7 +32,9 @@ import de.cbraeutigam.archint.util.Ordering;
 
 
 /**
- * Controller class that connects the main components.
+ * Main class for the basic integrity test GUI. Defines and connects the
+ * components, and implements a worker thread that does the actual integrity
+ * test computation. 
  * 
  * @author Christof Bräutigam (christof.braeutigam@cbraeutigam.de)
  * @version $Id: $
@@ -49,6 +51,8 @@ implements ActionListener, PropertyChangeListener {
 	private final static String ERROR_CANT_READ_ORDERING =  "Error: cannot read ordering information!";
 	private final static String ERROR_INVALID_ORDERING = "Error: ordering information invalid!";
 	private final static String ERROR_CANT_READ_DATAFILE =  "Error: cannot read data file ";
+	private final static String ERROR_MISSING_DATAFILE =  "Error: missing data file ";
+	private final static String ERROR_MISSING_ALGORITHM =  "Error: this Java installation is missing a SHA512 implementation!";
 	
 	private final static String VALID =  "VALID";
 	private final static String INVALID =  "INVALID";
@@ -80,6 +84,16 @@ implements ActionListener, PropertyChangeListener {
 			}
 		}
 		
+		/**
+		 * Convenience method to handle errors which abort the process.
+		 * @param abortMessage
+		 */
+		private void abort(String abortMessage) {
+			publish(abortMessage + Const.NEWLINE);
+			setProgress(100);
+			publish(INVALID);
+		}
+		
 		private boolean processDip() {
 			File integrityFile = new File(dir, HashForest.INTEGRITYFILENAME);
 			File orderingFile = new File(dir, Ordering.ORDERFILENAME);
@@ -94,7 +108,7 @@ implements ActionListener, PropertyChangeListener {
 				return false;
 			}
 			
-			publish("Reading integrity file" + Const.NEWLINE);
+			publish("Reading integrity information" + Const.NEWLINE);
 			
 			HashForest<SHA512HashValue> hf = new HashForest<SHA512HashValue>();
 			try {
@@ -110,14 +124,14 @@ implements ActionListener, PropertyChangeListener {
 				return false;
 			}
 			
-			publish("Reading ordering file" + Const.NEWLINE);
+			publish("Reading ordering information" + Const.NEWLINE);
 			
 			Ordering ordering = null;
 			try {
 				ordering = new Ordering(new ChecksumProvider(MessageDigest.getInstance("SHA-512")));
 				ordering.readFrom(new FileReader(orderingFile));
 			} catch (NoSuchAlgorithmException e) {
-				publish(ERROR_CANT_READ_ORDERING);
+				publish(ERROR_MISSING_ALGORITHM);
 				return false;
 			} catch (FileNotFoundException e) {
 				publish(ERROR_CANT_READ_ORDERING);
@@ -130,11 +144,23 @@ implements ActionListener, PropertyChangeListener {
 				return false;
 			}
 			
+			// Check existence of all data files before processessing all of
+			// them and aborting on the last file because it's missing.
+			for (String fn : ordering.getIdentifiers()) {
+				File file = new File(dir, fn);
+				if (!file.isFile()) {
+					abort(ERROR_MISSING_DATAFILE + fn);
+					return false;
+				}
+			}
+			
 			double filesProcessed = 0.0;
 			int numFiles = ordering.getIdentifiers().size();
-			publish("Reading " + numFiles + " data files" + Const.NEWLINE);
+			publish("Processing " + numFiles + " data files" + Const.NEWLINE);
 			HashForest<SHA512HashValue> hfNew = new HashForest<SHA512HashValue>();
 			for (String fn : ordering.getIdentifiers()) {
+				// NOTE: progress is computed by the number of processed files,
+				// not the amount of processed bytes
 				int progress = Math.min((int)((filesProcessed/numFiles) * 100), 100);
 				setProgress(progress);
 				
@@ -142,10 +168,10 @@ implements ActionListener, PropertyChangeListener {
 				try {
 					hash = FileUtil.getHash(new File(dir, fn).getAbsolutePath());
 				} catch (NoSuchAlgorithmException e) {
-					publish(ERROR_CANT_READ_DATAFILE + fn);
+					abort(ERROR_MISSING_ALGORITHM);
 					return false;
 				} catch (MissingDataFileException e) {
-					publish(ERROR_CANT_READ_DATAFILE + fn);
+					abort(ERROR_MISSING_DATAFILE + fn);
 					return false;
 				}
 				hfNew.update(hash);
@@ -205,8 +231,7 @@ implements ActionListener, PropertyChangeListener {
 		if ("progress".equals(evt.getPropertyName())) {
             int progress = (Integer) evt.getNewValue();
             progressBar.setValue(progress);
-        } 
-		
+        }
 	}
 
 	@Override

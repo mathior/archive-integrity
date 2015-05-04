@@ -4,7 +4,7 @@ import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
 /**
- * 
+ * Starter class for the basic integrity test GUI.
  * 
  * @author Christof Bräutigam (christof.braeutigam@cbraeutigam.de)
  * @version $Id: $
