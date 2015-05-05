@@ -9,7 +9,7 @@ Die Komponente hat drei Hauptfunktionen:
 
 Die Komponente arbeitet mit SHA512-Hashwerten, die zur Überprüfung in einer Menge von Bäumen (Hashtree) verarbeitet werden. Alle wichtigen Funktionen sind in der Klasse `HashForest` untergebracht. Die Integritätsinformation kann in zwei Modi serialisiert werden: Full und Root (siehe unten).
 
-Die Integritätsinformation betrifft immer die gesamte Kollektion, es kann keine Aussage über einzelne Dateien gemacht werden. Wenn eine einzelne Datei modifiziert wurde oder fehlt, ist somit die Integrität der gesamten Kollektion invalide.
+Die Integritätsinformation betrifft immer die gesamte Kollektion, es kann keine Aussage über einzelne Dateien gemacht werden. Wenn eine einzelne Datei modifiziert wurde oder fehlt, ist somit die Integrität der gesamten Kollektion invalid.
 
 Ein HashForest kann mit verschiedenen Hashtypen arbeiten, die das Interface `HashValue` implementieren. Empfohlen ist die Verwendung von SHA512 Hashes, die Komponente liefert dafür eine Implementierung `SHA512HashValue`. Integritätsinformationen, die verschiedene Hashtypen haben sind inkompatibel zueinander.
 
@@ -81,7 +81,7 @@ Serialisierung der Integritätsinformationen. (Im Beispiel auch die Funktionswei
 
 ### 3. Folgegeneration
 
-Erstellen eines Snapshot, laden eines alten Standes, hinzufügen neuer Dateien und Serialisieren des aktualisierten Standes.
+Erstellen eines Snapshot, laden eines alten Standes, hinzufügen neuer Dateien und serialisieren des aktualisierten Standes.
 
     // Hier: Snapshot eines zuvor serialisierten Zustands erstellen.
     // Alternativ kann auch der aktuelle Zustand komplett neu berechnet und
