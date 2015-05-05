@@ -9,9 +9,9 @@ Die Komponente hat drei Hauptfunktionen:
 
 Die Komponente arbeitet mit SHA512-Hashwerten, die zur Überprüfung in einer Menge von Bäumen (Hashtree) verarbeitet werden. Alle wichtigen Funktionen sind in der Klasse `HashForest` untergebracht. Die Integritätsinformation kann in zwei Modi serialisiert werden: Full und Root (siehe unten).
 
-Die Validitätsinformationen betreffen immer die gesamte Kollektion, es kann keine Aussage über einzelne Dateien gemacht werden. Wenn eine einzelne Datei modifiziert wurde oder fehlt, ist somit die Integrität der gesamten Kollektion invalide.
+Die Integritätsinformation betrifft immer die gesamte Kollektion, es kann keine Aussage über einzelne Dateien gemacht werden. Wenn eine einzelne Datei modifiziert wurde oder fehlt, ist somit die Integrität der gesamten Kollektion invalide.
 
-Ein HashForest kann mit verschiedenen Hashtypen arbeiten, die das Interface `HashValue` implementieren. Wir empfehlen die Verwendung von SHA512 Hashes, die Komponente liefert dafür eine Implementierung `SHA512HashValue`. Integritätsinformationen, die verschiedene Hashtypen haben sind inkompatibel zueinander.
+Ein HashForest kann mit verschiedenen Hashtypen arbeiten, die das Interface `HashValue` implementieren. Empfohlen ist die Verwendung von SHA512 Hashes, die Komponente liefert dafür eine Implementierung `SHA512HashValue`. Integritätsinformationen, die verschiedene Hashtypen haben sind inkompatibel zueinander.
 
 Die Integritätsinformationen enthalten einen Zeitstempel in einem ISO8601 Format. Der Zeitstempel kann mit der Methode `HashForest.getFirstSerializedDateTime()` abgefragt werden. Der Zeitstempel eines `HashForest`-Objekts wird erst beim serialisieren mit der Methode `HashForest.writeTo(FileWriter)` erstellt, und nach einer möglichen Erweiterung beim nächsten serialisieren durch den aktuellen Wert ersetzt. Wird ein `HashForest`-Objekt ohne Modifikation mehrfach serialisiert, ändert sich der Zeitstempel nicht. Solange ein `HashForest`-Objekt noch nicht serialisiert wurde, liefert die Methode `HashForest.getFirstSerializedDateTime()` den Wert `null`.
 
