@@ -8,7 +8,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -22,7 +21,7 @@ import de.cbraeutigam.archint.util.TextSerializable;
 /**
  * 
  * @author Christof Bräutigam (christof.braeutigam@cbraeutigam.de)
- * @version 2015-03-17T21:14:00
+ * @version 2015-05-05T15:06:21
  * @since 2014-12-12
  * 
  *
@@ -67,8 +66,11 @@ public class HashForest<T extends HashValue> implements TextSerializable {
 	
 	/*
 	 * Holds the date and time when this hash forest was first serialized.
+	 * As per change request from 2015-04-22 the datetime is required to be an
+	 * ISO8601 string, therefore we have no need to store a Date object
 	 */
-	private Date firstSerializedDateTime = null;
+	//private Date firstSerializedDateTime = null;
+	private String firstSerializedDateTime = null;
 	
 	private List<T> leafs = new ArrayList<T>();
 	private List<T[]> trees = new ArrayList<T[]>();
@@ -324,11 +326,14 @@ public class HashForest<T extends HashValue> implements TextSerializable {
 	}
 	
 	/**
-	 * Returns the Date when this hash forest was first serialized.
-	 * @return Date when this hash forest was first serialized.
+	 * Returns the Date when this hash forest was first serialized. Returns
+	 * null if this hash forest has never been serialized.
+	 * 
+	 * @return Date when this hash forest was first serialized or null.
 	 */
-	public Date getFirstSerializedDateTime() {
-		return (Date) this.firstSerializedDateTime.clone();
+	public String getFirstSerializedDateTime() {
+		//return (Date) this.firstSerializedDateTime.clone();
+		return firstSerializedDateTime;
 	}
 	
 	private void updateChecksum(ChecksumProvider cp, String field, String value) {
@@ -354,13 +359,17 @@ public class HashForest<T extends HashValue> implements TextSerializable {
 		 * extended. If this hash forest is in ROOTS mode or in FULL mode but
 		 * has not been extended, reuse the stored datetime.
 		 */
-		Date date = null;
+		//Date date = null;
+		String dateFormatted = null;
 		if ((firstSerializedDateTime == null) || (mode.equals(Mode.FULL) && isDirty)) {
-			date = new Date();
+			//date = new Date();
+			dateFormatted = DateProvider.date2String(new Date());
+			firstSerializedDateTime = dateFormatted;
 		} else {
-			date = firstSerializedDateTime;
+			//date = firstSerializedDateTime;
+			dateFormatted = firstSerializedDateTime;
 		}
-		String dateFormattet = DateProvider.date2String(date);
+		//String dateFormatted = DateProvider.date2String(date);
 		
 		/*
 		 * TODO: This is not necessary if the hash forest is in FULL mode.
@@ -376,7 +385,7 @@ public class HashForest<T extends HashValue> implements TextSerializable {
 		}
 		
 		writeChecked(w, cp, Const.VERSION, Integer.toString(version));
-		writeChecked(w, cp, Const.DATE, dateFormattet);
+		writeChecked(w, cp, Const.DATE, dateFormatted);
 		writeChecked(w, cp, Const.LEAFS, Integer.toString(leafsCount));
 		writeChecked(w, cp, Const.TREES, Integer.toString(treesCount));
 		writeChecked(w, cp, Const.ORDER, orderingInformationLocation);
@@ -398,7 +407,7 @@ public class HashForest<T extends HashValue> implements TextSerializable {
 		w.write(checksum);
 		w.write(Const.NEWLINE);
 		
-		firstSerializedDateTime = date;
+		//firstSerializedDateTime = date;
 	}
 	
 	
@@ -434,11 +443,12 @@ public class HashForest<T extends HashValue> implements TextSerializable {
 		
 		line = br.readLine();
 		value = readChecked(cp, line, Const.DATE);
-		try {
-			firstSerializedDateTime = DateProvider.string2Date(value);
-		} catch (ParseException e1) {
-			throw new InvalidInputException("Date format invalid.");
-		}
+		firstSerializedDateTime = value;
+//		try {
+//			firstSerializedDateTime = DateProvider.string2Date(value);
+//		} catch (ParseException e1) {
+//			throw new InvalidInputException("Date format invalid.");
+//		}
 		
 		line = br.readLine();
 		value = readChecked(cp, line, Const.LEAFS);

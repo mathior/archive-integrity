@@ -62,7 +62,14 @@ implements ActionListener, PropertyChangeListener {
 	private JFileChooser fc;
 	private Task task;
 	
-	
+	/**
+	 * Main working thread.
+	 * 
+	 * @author Christof Bräutigam (christof.braeutigam@cbraeutigam.de)
+	 * @version $Id: $
+	 * @since 2015-03-30
+	 *
+	 */
 	class Task extends SwingWorker<Boolean, String> {
 		
 		private File dir;

@@ -1,6 +1,10 @@
 package de.cbraeutigam.archint.hashforest;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -12,8 +16,13 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 
-import de.cbraeutigam.archint.util.DateProvider;
-
+/**
+ * 
+ * @author Christof Bräutigam (christof.braeutigam@cbraeutigam.de)
+ * @version 2015-05-05T15:03:28
+ * @since 2014-12-12
+ *
+ */
 public class HashForestTest {
 
 	private static String[] hashStrings = new String[] {
@@ -406,39 +415,47 @@ public class HashForestTest {
 	
 	@Test
 	public void testDateTimeHandling() throws IOException, InvalidInputException {
-		HashForest<SHA512HashValue> hf = new HashForest<SHA512HashValue>();
-		hf.update(sha512Hashes.get(0));
+		HashForest<SHA512HashValue> hf1 = new HashForest<SHA512HashValue>();
+		
+		hf1.update(sha512Hashes.get(0));
+		
+		assertNull(hf1.getFirstSerializedDateTime());
 		
 		StringWriter sw = new StringWriter();
-		hf.writeTo(sw);
+		hf1.writeTo(sw);
 		
-		String dateTime1 = DateProvider.date2String(hf.getFirstSerializedDateTime());
+		//String dateTime1 = DateProvider.date2String(hf.getFirstSerializedDateTime());
+		String dateTime1 = hf1.getFirstSerializedDateTime();
 		
 		StringReader sr = new StringReader(sw.toString());
 		HashForest<SHA512HashValue> hf2 = new HashForest<SHA512HashValue>();
 		hf2.readFrom(sr);
-		String dateTime2 = DateProvider.date2String(hf2.getFirstSerializedDateTime());
+		//String dateTime2 = DateProvider.date2String(hf2.getFirstSerializedDateTime());
+		String dateTime2 = hf2.getFirstSerializedDateTime();
 		
 		assertEquals(dateTime1, dateTime2);
 		
 		hf2.update(sha512Hashes.get(1));
 		sw = new StringWriter();
 		hf2.writeTo(sw);
-		String dateTime3 = DateProvider.date2String(hf2.getFirstSerializedDateTime());
+		//String dateTime3 = DateProvider.date2String(hf2.getFirstSerializedDateTime());
+		String dateTime3 = hf2.getFirstSerializedDateTime();
 		
 		assertNotEquals(dateTime2, dateTime3);
 		
 		hf2.pruneForest();
 		sw = new StringWriter();
 		hf2.writeTo(sw);
-		String dateTime4 = DateProvider.date2String(hf2.getFirstSerializedDateTime());
+		//String dateTime4 = DateProvider.date2String(hf2.getFirstSerializedDateTime());
+		String dateTime4 = hf2.getFirstSerializedDateTime();
 		
 		assertEquals(dateTime3, dateTime4);
 		
 		sr = new StringReader(sw.toString());
 		HashForest<SHA512HashValue> hf3 = new HashForest<SHA512HashValue>();
 		hf3.readFrom(sr);
-		String dateTime5 = DateProvider.date2String(hf3.getFirstSerializedDateTime());
+		//String dateTime5 = DateProvider.date2String(hf3.getFirstSerializedDateTime());
+		String dateTime5 = hf3.getFirstSerializedDateTime();
 		
 		assertEquals(dateTime3, dateTime5);
 	}
