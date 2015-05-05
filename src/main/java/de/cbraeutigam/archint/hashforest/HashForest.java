@@ -87,17 +87,6 @@ public class HashForest<T extends HashValue> implements TextSerializable {
 	
 	private Mode mode = Mode.FULL;  // full is the default mode
 	
-	private void checkIsDirty() {
-		if ((isDirty || trees.isEmpty()) && mode.equals(Mode.FULL)) {
-			trees = createForest(leafs);
-			leafsCount = leafs.size();
-			treesCount = trees.size();
-			if (isDirty) {
-				isDirty = false;
-			}
-		}
-	}
-	
 	/**
 	 * Returns true iff this forest is empty.
 	 * @return true if forest is empty, otherwise false.
@@ -161,6 +150,20 @@ public class HashForest<T extends HashValue> implements TextSerializable {
 	}
 	
 	/**
+	 * Checks if the forest has been updated and recreates the trees if needed.
+	 */
+	private void checkIsDirty() {
+		if ((isDirty || trees.isEmpty()) && mode.equals(Mode.FULL)) {
+			trees = createForest(leafs);
+			leafsCount = leafs.size();
+			treesCount = trees.size();
+			if (isDirty) {
+				isDirty = false;
+			}
+		}
+	}
+
+	/**
 	 * Update this forest with a new hash value.
 	 * @param hashValue
 	 */
@@ -198,13 +201,14 @@ public class HashForest<T extends HashValue> implements TextSerializable {
 	 * (left) and 2*n+2 (right)).
 	 * @return List of trees represented as lists.
 	 */
-	public List<T[]> getTrees() {
+	protected List<T[]> getTrees() {
 		checkIsDirty();
-		List<T[]> treesNew = new ArrayList<T[]>();
-		for (T[] tree : trees) {
-			treesNew.add(tree.clone());
-		}
-		return treesNew;
+//		List<T[]> treesNew = new ArrayList<T[]>();
+//		for (T[] tree : trees) {
+//			treesNew.add(tree.clone());
+//		}
+//		return treesNew;
+		return trees;
 	}
 	
 	
