@@ -122,7 +122,7 @@ Laden des alten Standes (z.B. eines Snapshot), laden (oder berechnen) eines aktu
     
     boolean isValidProgression = currentState.contains(oldState);
 
-Erläuterung zur Funktionsweise: Der HashForest ist so konstruiert, dass er nur wachsen kann, indem neue HashWerte angefügt werden, das einfügen neuer Werte zwischen bestehenden ist nicht möglich. In dem HashForest eines aktuellen Zustandes, der ausgehend von einem alten Zustand nur erweitert wurde, muss also die HashForest-Struktur des alten Zustandes auffindbar sein, solange keine Dateien, die zum alten Zustand gehörten, modifiziert oder entfernt wurden. Da jeder Baum durch den HashWert seiner Wurzel repräsentiert wird, reicht es aus, von dem alten Zustand die Wurzeln gespeichert zu haben. Vom aktuellen Zustand muss aber der gesamte Wald vorliegen.
+Erläuterung zur Funktionsweise: Der HashForest ist so konstruiert, dass er nur wachsen kann, indem neue HashWerte angefügt werden, das einfügen neuer Werte zwischen bestehenden ist nicht möglich. In dem HashForest eines aktuellen Zustandes, der ausgehend von einem alten Zustand nur erweitert wurde, muss also die HashForest-Struktur des alten Zustandes auffindbar sein, solange keine Dateien, die zum alten Zustand gehörten, modifiziert oder entfernt wurden. Da jeder Baum durch den Hashwert seiner Wurzel repräsentiert wird, reicht es aus, von dem alten Zustand die Wurzeln gespeichert zu haben. Vom aktuellen Zustand müssen aber alle Werte vorliegen.
 
 ## Statische Kollektion (DIP)
 
