@@ -109,7 +109,7 @@ Erstellen eines Snapshot, laden eines alten Standes, hinzufügen neuer Dateien u
     hf.writeTo(new FileWriter(integrityFile));
     
 
-### 5. alten Stand validieren
+### 4. Alten Stand validieren
 
 Laden des alten Standes (z.B. eines Snapshot), laden (oder berechnen) eines aktuellen Standes (muss im Full mode sein), überprüfen ob der alte Stand eine Untermenge des aktuellen Standes ist.
 
