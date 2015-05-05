@@ -9,7 +9,7 @@ Die Komponente hat drei Hauptfunktionen:
 
 Die Komponente arbeitet mit SHA512-Hashwerten, die zur Überprüfung in einer Menge von Bäumen (Hashtree) verarbeitet werden. Alle wichtigen Funktionen sind in der Klasse `HashForest` untergebracht. Die Integritätsinformation kann in zwei Modi serialisiert werden: Full und Root (siehe unten).
 
-Die Integritätsinformation betrifft immer die gesamte Kollektion, es kann keine Aussage über einzelne Dateien gemacht werden. Wenn eine einzelne Datei modifiziert wurde oder fehlt, ist somit die Integrität der gesamten Kollektion invalid.
+Die Integritätsinformation betrifft immer die gesamte Kollektion, es kann keine Aussage über einzelne Dateien gemacht werden. Wenn eine einzelne Datei modifiziert oder entfernt wurde, ist somit die Integrität der gesamten Kollektion invalid.
 
 Ein HashForest kann mit verschiedenen Hashtypen arbeiten, die das Interface `HashValue` implementieren. Empfohlen ist die Verwendung von SHA512 Hashes, die Komponente liefert dafür eine Implementierung `SHA512HashValue`. Integritätsinformationen, die verschiedene Hashtypen haben sind inkompatibel zueinander.
 
@@ -21,7 +21,7 @@ Die serialisierten Integritätsinformationen enhalten eine Liste der Hashwerte d
 
 ## Root mode
 
-Die serialisierten Integritätsinformationen enhalten nur eine Liste der Wurzeln der Hashbäume. Die serialisierte Datenmenge ist damit viel geringer als im Full mode, trotzdem können alle Hauptfunktionen damit erfüllt werden (Einschränkung: beim Überprüfen der Integrität eines alten Standes bei wachsenden Kollektionen muss der aktuelle Stand im Full mode vorliegen, bei dem alten Stand reicht der Root mode). Die Integritätsinformationen im Root mode können aber nicht mehr um neu hinzukommende Dateien erweitert werden. Der Root mode ist geeignet um eine statische Dateikollektion abzusichern und um für alte Zustände einer Kollektion zu überprüfen, ob der aktuelle Zustand nur neu hinzugekommene Dateien extra enthält, von den alten Dateien aber keine modifiziert wurde oder fehlt.
+Die serialisierten Integritätsinformationen enhalten nur eine Liste der Wurzeln der Hashbäume. Die serialisierte Datenmenge ist damit viel geringer als im Full mode, trotzdem können alle Hauptfunktionen damit erfüllt werden (Einschränkung: beim Überprüfen der Integrität eines alten Standes bei wachsenden Kollektionen muss der aktuelle Stand im Full mode vorliegen, bei dem alten Stand reicht der Root mode). Die Integritätsinformationen im Root mode können aber nicht mehr um neu hinzukommende Dateien erweitert werden. Der Root mode ist geeignet um eine statische Dateikollektion abzusichern und um für alte Zustände einer Kollektion zu überprüfen, ob der aktuelle Zustand nur neu hinzugekommene Dateien extra enthält, von den alten Dateien aber keine modifiziert oder entfernt wurden.
 
 Der Root mode wird aktiviert, indem auf einem `HashForest`-Objekt die Methode `pruneForest()` aufgerufen wird. *Achtung: Diese Aktion ist unumkehrbar!* Ein `HashForest`-Objekt im Root mode kann nicht mehr erweitert werden.
 
@@ -121,6 +121,8 @@ Laden des alten Standes (z.B. eines Snapshot), laden (oder berechnen) eines aktu
     currentState.readFrom(new FileReader(currentStateIntegrityFile));
     
     boolean isValidProgression = currentState.contains(oldState);
+
+Erläuterung zur Funktionsweise: Der HashForest ist so konstruiert, dass er nur wachsen kann, indem neue HashWerte angefügt werden, das einfügen neuer Werte zwischen bestehenden ist nicht möglich. In dem HashForest eines aktuellen Zustandes, der ausgehend von einem alten Zustand nur erweitert wurde, muss also die HashForest-Struktur des alten Zustandes auffindbar sein, solange keine Dateien, die zum alten Zustand gehörten, modifiziert oder entfernt wurden. Da jeder Baum durch den HashWert seiner Wurzel repräsentiert wird, reicht es aus, von dem alten Zustand die Wurzeln gespeichert zu haben. Vom aktuellen Zustand muss aber der gesamte Wald vorliegen.
 
 ## Statische Kollektion (DIP)
 
