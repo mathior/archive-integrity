@@ -5,7 +5,7 @@
     <target name="create_run_jar">
         <jar destfile="demo-v0.11.jar" filesetmanifest="mergewithoutmain">
             <manifest>
-                <attribute name="Main-Class" value="de.cbraeutigam.archint.application.DemoApplication"/>
+                <attribute name="Main-Class" value="de.cbraeutigam.archint.Main"/>
                 <attribute name="Class-Path" value="."/>
             </manifest>
             <fileset dir="../target"/>

@@ -1,5 +1,8 @@
 package de.cbraeutigam.archint.gui;
 
+import java.util.Locale;
+import java.util.ResourceBundle;
+
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
@@ -18,7 +21,8 @@ public class App {
 
 			@Override
 			public void run() {
-				JFrame frame = new MainFrame("DIP integrity check");
+				ResourceBundle messages = ResourceBundle.getBundle("Messages", Locale.getDefault());
+				JFrame frame = new MainFrame(messages.getString("main_frame_title"));
 				frame.setSize(500, 400);
 				frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 				frame.setVisible(true);

@@ -1,5 +1,6 @@
 package de.cbraeutigam.archint.gui;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Container;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
@@ -12,7 +13,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.MessageFormat;
 import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
 
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -46,16 +50,13 @@ implements ActionListener, PropertyChangeListener {
 	
 	private static final long serialVersionUID = -4024436092995281043L;
 	
-	private final static String ERROR_CANT_READ_INTEGRITY = "Error: cannot read integrity information!";
-	private final static String ERROR_INVALID_INTEGRITY = "Error: integrity information invalid!";
-	private final static String ERROR_CANT_READ_ORDERING =  "Error: cannot read ordering information!";
-	private final static String ERROR_INVALID_ORDERING = "Error: ordering information invalid!";
-	private final static String ERROR_CANT_READ_DATAFILE =  "Error: cannot read data file ";
-	private final static String ERROR_MISSING_DATAFILE =  "Error: missing data file ";
-	private final static String ERROR_MISSING_ALGORITHM =  "Error: this Java installation is missing a SHA512 implementation!";
+	// i18n resource bundle for messages
+	private static ResourceBundle messages =
+			ResourceBundle.getBundle("Messages", Locale.getDefault());
 	
-	private final static String VALID =  "VALID";
-	private final static String INVALID =  "INVALID";
+	// i18n resource bundle for error messages
+	private static ResourceBundle errorMessages = 
+			ResourceBundle.getBundle("ErrorMessages", Locale.getDefault());
 	
 	private JTextArea textArea;
 	private JProgressBar progressBar;
@@ -81,6 +82,11 @@ implements ActionListener, PropertyChangeListener {
 		@Override
 		protected Boolean doInBackground() throws Exception {
 			boolean isValid = processDip();
+			if (isValid) {
+				textArea.setBackground(new Color(7, 203, 20));
+			} else {
+				textArea.setBackground(new Color(255, 15, 9));
+			}
 			return isValid;
 		}
 		
@@ -98,7 +104,7 @@ implements ActionListener, PropertyChangeListener {
 		private void abort(String abortMessage) {
 			publish(abortMessage + Const.NEWLINE);
 			setProgress(100);
-			publish(INVALID);
+			publish(messages.getString("invalid"));
 		}
 		
 		private boolean processDip() {
@@ -106,48 +112,48 @@ implements ActionListener, PropertyChangeListener {
 			File orderingFile = new File(dir, Ordering.ORDERFILENAME);
 			
 			if (!integrityFile.isFile() || !integrityFile.canRead()) {
-				publish(ERROR_CANT_READ_INTEGRITY);
+				publish(errorMessages.getString("cant_read_integrity"));
 				return false;
 			}
 			
 			if (!orderingFile.isFile() || !orderingFile.canRead()) {
-				publish(ERROR_CANT_READ_ORDERING);
+				publish(errorMessages.getString("cant_read_ordering"));
 				return false;
 			}
 			
-			publish("Reading integrity information" + Const.NEWLINE);
+			publish(messages.getString("reading_integrity_information") + Const.NEWLINE);
 			
 			HashForest<SHA512HashValue> hf = new HashForest<SHA512HashValue>();
 			try {
 				hf.readFrom(new FileReader(integrityFile));
 			} catch (FileNotFoundException e) {
-				publish(ERROR_CANT_READ_INTEGRITY);
+				publish(errorMessages.getString("cant_read_integrity"));
 				return false;
 			} catch (IOException e) {
-				publish(ERROR_CANT_READ_INTEGRITY);
+				publish(errorMessages.getString("cant_read_integrity"));
 				return false;
 			} catch (InvalidInputException e) {
-				publish(ERROR_INVALID_INTEGRITY);
+				publish(errorMessages.getString("invalid_integrity"));
 				return false;
 			}
 			
-			publish("Reading ordering information" + Const.NEWLINE);
+			publish(messages.getString("reading_ordering_information") + Const.NEWLINE);
 			
 			Ordering ordering = null;
 			try {
 				ordering = new Ordering(new ChecksumProvider(MessageDigest.getInstance("SHA-512")));
 				ordering.readFrom(new FileReader(orderingFile));
 			} catch (NoSuchAlgorithmException e) {
-				publish(ERROR_MISSING_ALGORITHM);
+				publish(errorMessages.getString("missing_algorithm"));
 				return false;
 			} catch (FileNotFoundException e) {
-				publish(ERROR_CANT_READ_ORDERING);
+				publish(errorMessages.getString("cant_read_ordering"));
 				return false;
 			} catch (IOException e) {
-				publish(ERROR_CANT_READ_ORDERING);
+				publish(errorMessages.getString("cant_read_ordering"));
 				return false;
 			} catch (InvalidInputException e) {
-				publish(ERROR_INVALID_ORDERING);
+				publish(errorMessages.getString("invalid_ordering"));
 				return false;
 			}
 			
@@ -156,14 +162,23 @@ implements ActionListener, PropertyChangeListener {
 			for (String fn : ordering.getIdentifiers()) {
 				File file = new File(dir, fn);
 				if (!file.isFile()) {
-					abort(ERROR_MISSING_DATAFILE + fn);
+					abort(errorMessages.getString("missing_datafile") + ": " + fn);
 					return false;
 				}
 			}
 			
 			double filesProcessed = 0.0;
 			int numFiles = ordering.getIdentifiers().size();
-			publish("Processing " + numFiles + " data files" + Const.NEWLINE);
+			
+			// cf. http://docs.oracle.com/javase/tutorial/i18n/format/messageFormat.html,
+			// Dealing with Compound Messages
+			MessageFormat formatter =
+					new MessageFormat(
+							messages.getString("processing_n_files_template"),
+							Locale.getDefault());
+			Object[] msgArgs = { numFiles };
+			publish(formatter.format(msgArgs) + Const.NEWLINE);
+			
 			HashForest<SHA512HashValue> hfNew = new HashForest<SHA512HashValue>();
 			for (String fn : ordering.getIdentifiers()) {
 				// NOTE: progress is computed by the number of processed files,
@@ -175,10 +190,10 @@ implements ActionListener, PropertyChangeListener {
 				try {
 					hash = FileUtil.getHash(new File(dir, fn).getAbsolutePath());
 				} catch (NoSuchAlgorithmException e) {
-					abort(ERROR_MISSING_ALGORITHM);
+					abort(errorMessages.getString("missing_algorithm"));
 					return false;
 				} catch (MissingDataFileException e) {
-					abort(ERROR_MISSING_DATAFILE + fn);
+					abort(errorMessages.getString("missing_datafile") + ": " + fn);
 					return false;
 				}
 				hfNew.update(hash);
@@ -186,13 +201,13 @@ implements ActionListener, PropertyChangeListener {
 			}
 			setProgress(100);
 			
-			publish("Computing validity" + Const.NEWLINE);
+			publish(messages.getString("validity_computation_started") + Const.NEWLINE);
 			boolean isValid = hf.validate(hfNew);
 			
 			if (isValid) {
-				publish(VALID);
+				publish(messages.getString("valid"));
 			} else {
-				publish(INVALID);
+				publish(messages.getString("invalid"));
 			}
 			
 			return isValid;
@@ -226,7 +241,7 @@ implements ActionListener, PropertyChangeListener {
 		c.add(progressBar, BorderLayout.SOUTH);
 		
 		fc = new JFileChooser();
-		fc.setDialogTitle("Select DIP directory");
+		fc.setDialogTitle(messages.getString("dialog_select_dip_title"));
 		fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 		fc.addActionListener(this);
 		fc.showOpenDialog(this);
@@ -249,7 +264,7 @@ implements ActionListener, PropertyChangeListener {
 			task.addPropertyChangeListener(this);
 			task.execute();
 		} else if (e.getActionCommand().equals(JFileChooser.CANCEL_SELECTION)) {
-			textArea.append("No directory chosen." + Const.NEWLINE);
+			textArea.append(messages.getString("dialog_select_dip_canceled") + Const.NEWLINE);
 		}
 	}
 

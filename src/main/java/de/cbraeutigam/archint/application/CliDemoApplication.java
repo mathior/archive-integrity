@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import javax.xml.stream.XMLStreamException;
 
@@ -23,7 +24,7 @@ import de.cbraeutigam.archint.hashforest.SHA512HashValue;
 import de.cbraeutigam.archint.util.ChecksumProvider;
 import de.cbraeutigam.archint.util.Ordering;
 
-public class DemoApplication {
+public class CliDemoApplication {
 
 	private enum Option {
 		HELP, CREATE, CHECK, CONTAINS
@@ -510,8 +511,8 @@ public class DemoApplication {
 		return new CliOptions(option, isFull, path, null);
 	}
 	
-	public static void demoMain(String[] args) {
-		DemoApplication da = new DemoApplication();
+	public static void cliDemoMain(String[] args) {
+		CliDemoApplication da = new CliDemoApplication();
 		CliOptions opts = da.parseArgs(args);
 
 		if (opts.getOption().equals(Option.HELP)) {
@@ -640,16 +641,7 @@ public class DemoApplication {
 	}
 
 	public static void main(String[] args) {
-		
-		if (0 == args.length) {
-			App app = new App();
-			app.run();
-		} else {
-			demoMain(args);
-		}
-		
-//		bugfixMain();
-
+		//bugfixMain();
 	}
 
 }
